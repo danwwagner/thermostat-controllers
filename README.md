@@ -7,6 +7,7 @@ This software constitutes a thermostat controller by reading attached temperatur
 
 # Versions
 Version 1.0.0 supports two DS18B20 sensors attached.
+
 Version 2.0.0 supports multiple DS18B20 sensors and implements wireless communication via an access point.
 
 # Adafruit Python MCP9808
