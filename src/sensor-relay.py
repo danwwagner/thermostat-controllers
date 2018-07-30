@@ -15,14 +15,17 @@ import subprocess
 import RPi.GPIO as GPIO
 import codecs
 
+# Adafruit MCP9808 library
+import Adafruit_MCP9808.MCP9808 as mcp9808
+
 # Temperature differential for tent
 temperature_diff = 4
 
 # Log file interval, in seconds
-log_interval = 300
+log_interval = 5
 
 # Temperature checking interval, in seconds
-check_interval = 60
+check_interval = 1
 
 # IP address of main server Pi
 server_ip = '192.168.4.1'
@@ -54,17 +57,17 @@ class Gui(Frame):
         self.initialize()
 
 # Gui features: courtesy of Python documentation
-root = Tk()
+#root = Tk()
 # Set the font on the GUI
-bFont = tkFont.Font(root=root, family='Helvetica', size=70, weight='bold')
+#bFont = tkFont.Font(root=root, family='Helvetica', size=70, weight='bold')
 # Make the interface take up the entire screen
-root.attributes('-fullscreen', True)
+#root.attributes('-fullscreen', True)
 
 # List of sensors connected to the system
 sensor_list = []
 
-# Detect all sensors connected to the system and set up the list to read them.
-def detect_sensors():
+# Detect all DS18B20s connected to the system and set up the list to read them.
+def detect_ds18b20():
     # Probe the Pi's pins for the sensors
     os.system('modprobe w1-gpio')
     os.system('modprobe w1-therm')
@@ -85,6 +88,35 @@ def detect_sensors():
 
     return num_sensors
 
+# Detect all MCP9808s connected to the system and set up the list to read them.
+def detect_mcp9808():
+    # Create the sensor objects. Make sure that the addresses are configured correctly.
+    sensor0 = mcp9808.MCP9808(0x18)
+    sensor1 = mcp9808.MCP9808(0x19)
+    sensor2 = mcp9808.MCP9808(0x1A)
+    sensor3 = mcp9808.MCP9808(0x1B)
+    sensor4 = mcp9808.MCP9808(0x1C)
+    sensor5 = mcp9808.MCP9808(0x1D)
+
+    # Begin communication with the sensors
+    sensor0.begin()
+    sensor1.begin()
+    sensor2.begin()
+    sensor3.begin()
+    sensor4.begin()
+    sensor5.begin()
+
+    # Add the sensor objects to the list.
+    sensor_list.append(sensor0)
+    sensor_list.append(sensor1)
+    sensor_list.append(sensor2)
+    sensor_list.append(sensor3)
+    sensor_list.append(sensor4)
+    sensor_list.append(sensor5)
+
+    # Return the number of sensors connected
+    return 6
+    
 # Set up the relay signal pin
 signal_pin = 17
 # Use the Broadcom SOC channel number
@@ -98,7 +130,7 @@ GPIO.output(signal_pin, GPIO.LOW)
 # Set up the top pushbutton
 GPIO.setup(27, GPIO.IN, pull_up_down = GPIO.PUD_UP)
 
-# Open the file on the OS for the sensor data
+# Open the file for the DS18B20 on the OS for the sensor data
 # Courtesy of Adafruit
 def read_temp_raw(sensor):
     f = open(sensor, 'r')
@@ -106,9 +138,9 @@ def read_temp_raw(sensor):
     f.close()
     return lines
 
-# Read one of the temperature sensors and convert to meaningful data
+# Read one of the DS18B20s and convert to meaningful data
 # Courtesy of Adafruit
-def read_temp(sensor):
+def read_ds18b20(sensor):
     lines = read_temp_raw(sensor)
     while lines[0].strip()[-3:] != 'YES':
         time.sleep(0.2)
@@ -135,6 +167,11 @@ error_logs = codecs.open('connection.csv', 'a', 'utf-8')
 error_logs.write('\n')
 error_logs.close()
 
+# Delimit the next day's individual sensor readings via blank line
+sensor_readings = codecs.open('sensors.csv', 'a', 'utf-8')
+sensor_readings.write('\n')
+sensor_readings.close()
+
 while True:
     # Initialize indoor temperature and delay time
     indoor = 0
@@ -142,34 +179,57 @@ while True:
     bad_sensors = 0
 
     # Detect the sensors that are currently connected
-    sensors = detect_sensors()
+    #sensors_ds = detect_ds18b20()
+    sensors_ds = 0 
+    sensors_mcp = detect_mcp9808()
+    
     try:
-        for i in range(0, sensors):
-            temp = float(read_temp(sensor_list[i]))
+        # Read DS18B20 sensor data
+        for i in range(0, sensors_ds):
+            temp = float(read_ds18b20(sensor_list[i]))
             if temp >= 85:
                 bad_sensors += 1
             else:
                 # Read each temperature sensors' data
                 indoor += temp
+        
+        # Open the sensor readings file and write the current timestamp.
+        sensor_readings = codecs.open('sensors.csv', 'a', 'utf-8') 
+        sensor_readings.write(time.strftime("%a %d %b %Y %H:%M:%S", time.localtime()))
+ 
+        # Read MCP9808 sensor data and log to file
+        for i in range(0, sensors_mcp):
+            temp = float(sensor_list[i].readTempC())
+            sensor_readings.write("," + repr(temp))
+            indoor += temp
 
+        # Write a new line for the next reading interval
+        sensor_readings.write('\n')
+        
+        # Close the sensor readings file
+        sensor_readings.close()
+
+        # Get the total number of sensors.
+        sensors = sensors_ds + sensors_mcp
         # Average the temperature readings for accuracy
         indoor /= (sensors - bad_sensors)
 
-		# Round to three decimal places
+	# Round to three decimal places
         indoor = round(indoor, 3)
-        
-		# Retrieve the outdoor temperature from the control tent and parse it
+        print "Indoor: " + repr(indoor)
+	# Retrieve the outdoor temperature from the control tent and parse it
         subprocess.call('scp pi@' + control_ip + ':/home/pi/outdoor .', shell=True)
 		
-		# Open the retrieved file, read the line, convert to floating point, and round to three decimal places
+	# Open the retrieved file, read the line, convert to floating point, and round to three decimal places
         outdoor = round(float(codecs.open('outdoor', 'r').read()), 3)
-
+        print "Outdoor: " + repr(outdoor)
         if indoor == 0 and outdoor == 0: # both sensors disconnected while running, raise an exception
             raise RuntimeError
-    except: # Exception occurred with sensor: notify via GUI
+    except Exception as ex: # Exception occurred with sensor: notify via GUI
         indoor = 90
         outdoor = 90
         heater = "SENSOR"
+        print ex
     
 	# If the indoor temperature is below the differential, and no error has occurred, the heater is turned on
     if indoor - outdoor < temperature_diff and (indoor != 90 and outdoor != 90):
@@ -180,9 +240,9 @@ while True:
         if (indoor != 90 and outdoor != 90): heater = "OFF"
 
     # Update the GUI to represent the change in temperatures
-    gui = Gui(master=root)
-    gui.update_idletasks()
-    gui.update()
+    #gui = Gui(master=root)
+    #gui.update_idletasks()
+    #gui.update()
 
     # If log interval reached, record the timestamp, indoor and outdoor temperatures, and heater status to file
     if cnt == log_interval: # Log to file every 5 min (60s * 5 = 300s)
@@ -207,4 +267,4 @@ while True:
 	# Update the counter for the log interval timing
     cnt += check_interval
 	# Clean up resources for the next GUI update
-    gui.destroy()
+    #gui.destroy()
