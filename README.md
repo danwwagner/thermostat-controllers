@@ -11,7 +11,7 @@ Version 1.0.0 supports two DS18B20 sensors attached.
 Version 2.0.0 supports multiple DS18B20 sensors and implements wireless communication via an access point.
 
 ## Adafruit Python MCP9808
-See the repository link in the description.  Any folders or files mentioned are isolated to that repository.
+**See the repository link in the Acknowledgements.  Any folders or files mentioned are isolated to that repository.**
 
 Python library for accessing the MCP9808 precision temperature sensor on a Raspberry Pi or Beaglebone Black.
 
