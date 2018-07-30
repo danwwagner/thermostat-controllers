@@ -57,11 +57,11 @@ class Gui(Frame):
         self.initialize()
 
 # Gui features: courtesy of Python documentation
-root = Tk()
+#root = Tk()
 # Set the font on the GUI
-bFont = tkFont.Font(root=root, family='Helvetica', size=70, weight='bold')
+#bFont = tkFont.Font(root=root, family='Helvetica', size=70, weight='bold')
 # Make the interface take up the entire screen
-root.attributes('-fullscreen', True)
+#root.attributes('-fullscreen', True)
 
 # List of sensors connected to the system
 sensor_list = []
@@ -90,32 +90,34 @@ def detect_ds18b20():
 
 # Detect all MCP9808s connected to the system and set up the list to read them.
 def detect_mcp9808():
-    # Create the sensor objects. Make sure that the addresses are configured correctly.
-    sensor0 = mcp9808.MCP9808(0x18)
-    sensor1 = mcp9808.MCP9808(0x19)
-    sensor2 = mcp9808.MCP9808(0x1A)
-    sensor3 = mcp9808.MCP9808(0x1B)
-    sensor4 = mcp9808.MCP9808(0x1C)
-    sensor5 = mcp9808.MCP9808(0x1D)
+    # Poll the number of sensors via text manipulation from the I2C bus.
+    raw_sensors = subprocess.check_output("sudo i2cdetect -y 1 | sed 's/--//g' | tail -n +2 | sed 's/^.0://g' | sed 's/68//g'", shell=True)
 
-    # Begin communication with the sensors
-    sensor0.begin()
-    sensor1.begin()
-    sensor2.begin()
-    sensor3.begin()
-    sensor4.begin()
-    sensor5.begin()
+    # Holds the list of I2C addresses for each sensor
+    addr_list = []
 
-    # Add the sensor objects to the list.
-    sensor_list.append(sensor0)
-    sensor_list.append(sensor1)
-    sensor_list.append(sensor2)
-    sensor_list.append(sensor3)
-    sensor_list.append(sensor4)
-    sensor_list.append(sensor5)
+    # Name of an individual sensor
+    sensor_name = ''
+
+    # Create the sensor objects. 
+    max = len(raw_sensors)
+    for i in range(0, max):
+        if raw_sensors[i] != ' ' and raw_sensors[i] != '\n':
+            sensor_name += raw_sensors[i]
+            if len(sensor_name) == 2:  # Hexadecimal addresses are two digits long
+                addr_list.append(sensor_name)
+                sensor_name = ''
+
+    num_sensors = len(addr_list)
+
+    # Begin communication with each sensor, and add it to the list of sensors.
+    for i in range(0, num_sensors):
+        sensor = mcp9808.MCP9808((int(addr_list[i], 16)))
+        sensor.begin()
+        sensor_list.append(sensor)     
 
     # Return the number of sensors connected
-    return 6
+    return num_sensors
     
 # Set up the relay signal pin
 signal_pin = 17
@@ -179,7 +181,8 @@ while True:
     bad_sensors = 0
 
     # Detect the sensors that are currently connected
-    sensors_ds = detect_ds18b20()
+    #sensors_ds = detect_ds18b20()
+    sensors_ds = 0 
     sensors_mcp = detect_mcp9808()
     
     try:
@@ -215,13 +218,11 @@ while True:
 
 	    # Round to three decimal places
         indoor = round(indoor, 3)
-		
 	    # Retrieve the outdoor temperature from the control tent and parse it
         subprocess.call('scp pi@' + control_ip + ':/home/pi/outdoor .', shell=True)
 		
 	    # Open the retrieved file, read the line, convert to floating point, and round to three decimal places
         outdoor = round(float(codecs.open('outdoor', 'r').read()), 3)
-
         if indoor == 0 and outdoor == 0: # both sensors disconnected while running, raise an exception
             raise RuntimeError
     except Exception as ex: # Exception occurred with sensor: notify via GUI
@@ -239,9 +240,9 @@ while True:
         if (indoor != 90 and outdoor != 90): heater = "OFF"
 
     # Update the GUI to represent the change in temperatures
-    gui = Gui(master=root)
-    gui.update_idletasks()
-    gui.update()
+    #gui = Gui(master=root)
+    #gui.update_idletasks()
+    #gui.update()
 
     # If log interval reached, record the timestamp, indoor and outdoor temperatures, and heater status to file
     if cnt == log_interval: # Log to file every 5 min (60s * 5 = 300s)
@@ -266,4 +267,4 @@ while True:
 	# Update the counter for the log interval timing
     cnt += check_interval
 	# Clean up resources for the next GUI update
-    gui.destroy()
+    #gui.destroy()
