@@ -3,6 +3,9 @@ Thermostat Controllers for Agronomy heat stress research
 
 [![DOI](https://zenodo.org/badge/142898603.svg)](https://zenodo.org/badge/latestdoi/142898603) Version 1.0.0
 
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.1323816.svg)](https://doi.org/10.5281/zenodo.1323816) Version 2.0.0
+
+
 This software constitutes a thermostat controller by reading attached temperature sensors and controlling a set of relays.  The system reads both the indoor and outdoor temperatures and measures their differential.  If the indoor temperature is not higher than the outdoor temperature by a coded amount, then the relays are activated to enable a heater to heat up the environment.  Otherwise, the relays are deactivated and no heat is applied.
 
 ## Versions
