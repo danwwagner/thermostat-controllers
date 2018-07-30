@@ -22,10 +22,10 @@ import Adafruit_MCP9808.MCP9808 as mcp9808
 temperature_diff = 4
 
 # Log file interval, in seconds
-log_interval = 5
+log_interval = 300
 
 # Temperature checking interval, in seconds
-check_interval = 1
+check_interval = 60
 
 # IP address of main server Pi
 server_ip = '192.168.4.1'
@@ -57,11 +57,11 @@ class Gui(Frame):
         self.initialize()
 
 # Gui features: courtesy of Python documentation
-#root = Tk()
+root = Tk()
 # Set the font on the GUI
-#bFont = tkFont.Font(root=root, family='Helvetica', size=70, weight='bold')
+bFont = tkFont.Font(root=root, family='Helvetica', size=70, weight='bold')
 # Make the interface take up the entire screen
-#root.attributes('-fullscreen', True)
+root.attributes('-fullscreen', True)
 
 # List of sensors connected to the system
 sensor_list = []
@@ -179,8 +179,7 @@ while True:
     bad_sensors = 0
 
     # Detect the sensors that are currently connected
-    #sensors_ds = detect_ds18b20()
-    sensors_ds = 0 
+    sensors_ds = detect_ds18b20()
     sensors_mcp = detect_mcp9808()
     
     try:
@@ -214,15 +213,15 @@ while True:
         # Average the temperature readings for accuracy
         indoor /= (sensors - bad_sensors)
 
-	# Round to three decimal places
+	    # Round to three decimal places
         indoor = round(indoor, 3)
-        print "Indoor: " + repr(indoor)
-	# Retrieve the outdoor temperature from the control tent and parse it
+		
+	    # Retrieve the outdoor temperature from the control tent and parse it
         subprocess.call('scp pi@' + control_ip + ':/home/pi/outdoor .', shell=True)
 		
-	# Open the retrieved file, read the line, convert to floating point, and round to three decimal places
+	    # Open the retrieved file, read the line, convert to floating point, and round to three decimal places
         outdoor = round(float(codecs.open('outdoor', 'r').read()), 3)
-        print "Outdoor: " + repr(outdoor)
+
         if indoor == 0 and outdoor == 0: # both sensors disconnected while running, raise an exception
             raise RuntimeError
     except Exception as ex: # Exception occurred with sensor: notify via GUI
@@ -240,9 +239,9 @@ while True:
         if (indoor != 90 and outdoor != 90): heater = "OFF"
 
     # Update the GUI to represent the change in temperatures
-    #gui = Gui(master=root)
-    #gui.update_idletasks()
-    #gui.update()
+    gui = Gui(master=root)
+    gui.update_idletasks()
+    gui.update()
 
     # If log interval reached, record the timestamp, indoor and outdoor temperatures, and heater status to file
     if cnt == log_interval: # Log to file every 5 min (60s * 5 = 300s)
@@ -267,4 +266,4 @@ while True:
 	# Update the counter for the log interval timing
     cnt += check_interval
 	# Clean up resources for the next GUI update
-    #gui.destroy()
+    gui.destroy()
