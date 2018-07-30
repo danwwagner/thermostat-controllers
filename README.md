@@ -40,7 +40,8 @@ See examples of usage in the examples folder.
 Adafruit invests time and resources providing this open source code, please support Adafruit and open-source hardware by purchasing products from Adafruit!
 
 ## Acknowledgements
-Thanks to Adafruit for their code for the DS18B20 and MCP9808 temperature sensors.
+Thanks to Adafruit for their code for the DS18B20 and MCP9808 temperature sensors, and their installation guide above.
+
 https://learn.adafruit.com/adafruits-raspberry-pi-lesson-11-ds18b20-temperature-sensing/overview
 
 https://github.com/adafruit/Adafruit_Python_MCP9808 (courtesy of Tony DiCola, MIT license)
