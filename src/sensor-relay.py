@@ -91,7 +91,7 @@ def detect_ds18b20():
 # Detect all MCP9808s connected to the system and set up the list to read them.
 def detect_mcp9808():
     # Poll the number of sensors via text manipulation from the I2C bus.
-    raw_sensors = subprocess.check_output("sudo i2cdetect -y 1 | sed 's/--//g' | tail -n +2 | sed 's/^.0://g' | sed 's/68//g'", shell=True)
+    raw_sensors = subprocess.check_output("sudo i2cdetect -y 1 | sed 's/--//g' | tail -n +2 | sed 's/^.0://g' | sed 's/UU//g'", shell=True)
 
     # Holds the list of I2C addresses for each sensor
     addr_list = []
@@ -160,7 +160,7 @@ heater = "OFF"
 cnt = 0
 
 # Delimit the next day's reading via blank line
-output_file = codecs.open('four.csv', 'a', 'utf-8')
+output_file = codecs.open('readings.csv', 'a', 'utf-8')
 output_file.write('\n')
 output_file.close()
 
@@ -246,13 +246,13 @@ while True:
 
     # If log interval reached, record the timestamp, indoor and outdoor temperatures, and heater status to file
     if cnt == log_interval: # Log to file every 5 min (60s * 5 = 300s)
-        output_file = codecs.open('four.csv', 'a', 'utf-8')
+        output_file = codecs.open('readings.csv', 'a', 'utf-8')
         output_file.write(time.strftime("%a %d %b %Y %H:%M:%S", time.localtime()) + "," +  repr(indoor) + "," + repr(outdoor) + "," + heater + "\n")
         output_file.close()
 
         # Attempt to copy the logs to the server Pi and log the error code (0 success, nonzero failure)
         error_logs = codecs.open('connection.csv', 'a', 'utf-8')
-        error_code = subprocess.call('scp -o ConnectTimeout=30 /home/pi/four.csv pi@' + server_ip + ':/home/pi/Desktop', shell=True)
+        error_code = subprocess.call('scp -o ConnectTimeout=30 /home/pi/readings.csv pi@' + server_ip + ':/home/pi/Desktop', shell=True)
         error_logs.write(time.strftime("%a %d %b %Y %H:%M:%S", time.localtime()) + "," + str(error_code) + "\n")
         error_logs.close()
         cnt = 0
