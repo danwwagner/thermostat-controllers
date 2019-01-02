@@ -148,7 +148,7 @@ while True:
     # If log interval reached, record the timestamp, indoor and outdoor temperatures, and heater status to file
     if cnt == log_interval: # Log to file every 5 min (60s * 5 = 300s)
         output_file = codecs.open(data_file, 'w', 'utf-8')
-        output_file.write(repr(indoor) + "," + repr(outdoor) + "," + heater + "\n")
+        output_file.write(repr(indoor) + "," + repr(outdoor))
         output_file.close()
 
         # Attempt to copy the logs to the server Pi and log the error code (0 success, nonzero failure)
