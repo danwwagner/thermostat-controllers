@@ -247,13 +247,13 @@ while True:
     # If log interval reached, record the timestamp, indoor and outdoor temperatures, and heater status to file
     if cnt == log_interval: # Log to file every 5 min (60s * 5 = 300s)
         output_file = codecs.open('readings.csv', 'a', 'utf-8')
-        output_file.write(time.strftime("%a %d %b %Y %H:%M:%S", time.localtime()) + "," +  repr(indoor) + "," + repr(outdoor) + "," + heater + "\n")
+        output_file.write(time.strftime("%Y/%m/%d %H:%M:%S", time.localtime()) + "," +  repr(indoor) + "," + repr(outdoor) + "," + heater + "\n")
         output_file.close()
 
         # Attempt to copy the logs to the server Pi and log the error code (0 success, nonzero failure)
         error_logs = codecs.open('connection.csv', 'a', 'utf-8')
         error_code = subprocess.call('scp -o ConnectTimeout=30 /home/pi/readings.csv pi@' + server_ip + ':/home/pi/Desktop', shell=True)
-        error_logs.write(time.strftime("%a %d %b %Y %H:%M:%S", time.localtime()) + "," + str(error_code) + "\n")
+        error_logs.write(time.strftime("%Y/%m/%d %H:%M:%S", time.localtime()) + "," + str(error_code) + "\n")
         error_logs.close()
         cnt = 0
     
