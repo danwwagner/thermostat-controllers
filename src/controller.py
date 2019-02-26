@@ -5,28 +5,32 @@
 # Adapted and modified by: Dan Wagner
 # Functionality added: GUI, multiple sensor readings, relay pins
 # Agronomy Research, Summer 2018
-
-import os
-import glob
+import logging
+import sys
 import time
 import subprocess
 #import RPi.GPIO as GPIO
 import codecs
-import logging
 
-# Import the class for the desired temperature sensor
-from mcp9808 import *
+# Imports Sensor base class, all subclasses, and subprocess
+from sensor import *
 
 class Controller:
 
 	# Initialize the variables in the system.
-	def __init__(self):
+	def __init__(self, sensor_list):
 
 		# Designate the type of sensor we are using.
-		self.sensors = MCP9808()
+		self.sensors = sensor_list
+
+		# Keep track of the number of each type of sensors connected.
+		self.num_sensors = [None] * len(self.sensors)
 
 		# Filename for specific tent to write data
 		self.data_file = '01.txt'
+
+		# Format for logging information
+		self.format="%(asctime)-15s %(message)s"
 
 		# Temperature differential for tent
 		self.temperature_diff = 4
@@ -80,27 +84,41 @@ class Controller:
 		self.sensor_readings.write('\n')
 		self.sensor_readings.close()
 
+		# Instantiate the logging for debugging purposes
+		self.logger = logging.getLogger("Controller")
 
 	# Main loop of the program.
 	def main(self):
-		# Instantiate the logging for debugging purposes
-		logging.basicConfig(filename='controller.log',level=logging.INFO)
+
+		# Configure the logger and record the types of sensors that have been detected by the controller
+		self.logger.basicConfig = logging.basicConfig(format=self.format, filename='controller.log',level=logging.INFO)
+		for sen in self.sensors:
+			self.logger.info('Detected %s sensors', type(sen))
+
 		while True:
 			# Detect the sensors that are currently connected
-			self.sensors.detect()
+			for i in range(0, len(self.sensors)):
+				self.sensors[i].detect()
+				self.num_sensors[i] = self.sensors[i].num_sensors
 
 			try:
-				logging.info('Opening sensors file for records')
 				# Open the sensor readings file and write the current timestamp.
+				self.logger.info('Opening sensors file for records')
 				self.sensor_readings = codecs.open('sensors.csv', 'a', 'utf-8') 
 				self.sensor_readings.write(time.strftime("%Y/%m/%d %H:%M:%S", time.localtime()))
 
-				logging.info('Reading sensors from Pi')
-				# Read sensor data.
-				self.indoor, readings = self.sensors.read()
+				# Read sensor data from all types of connected sensors.
+				self.logger.info('Reading sensors from Pi')
+				total_indoor = 0
+				total_readings = ""
+				for sen in self.sensors:
+					self.indoor, readings = sen.read()
+					total_indoor += self.indoor
+					total_readings += readings
+				self.logger.info('Detected indoor temp of %d', total_indoor / len(self.sensors))
 
 				# Log the individual readings.
-				self.sensor_readings.write(readings)
+				self.sensor_readings.write(total_readings)
 
 				# Write a new line for the next reading interval
 				self.sensor_readings.write('\n')
@@ -108,16 +126,16 @@ class Controller:
 				# Close the sensor readings file
 				self.sensor_readings.close()
 
-				# Average the temperature readings for accuracy
-				self.indoor /= sensors
+				# Average the temperature readings for accuracy and type of sensors
+				self.indoor = total_indoor / len(self.sensors)
 
 				# Round to three decimal places
 				self.indoor = round(self.indoor, 3)
 
-				logging.info('Retrieving outdoor temperature from control tent')
+				self.logger.info('Retrieving outdoor temperature from control tent')
 				# Retrieve the self.outdoor temperature from the control tent and parse it
 				subprocess.call('scp pi@' + self.control_ip + ':/home/pi/self.outdoor .', shell=True)
-				logging.info('Retrieved temperature: %d', indoor)
+				self.logger.info('Retrieved temperature: %d', indoor)
 
 				# Open the retrieved file, read the line, convert to floating point, and round to three decimal places
 				self.outdoor = round(float(codecs.open('self.outdoor', 'r').read()), 3)
@@ -128,7 +146,9 @@ class Controller:
 				self.indoor = 90
 				self.outdoor = 90
 				self.heater = "SENSOR"
-				logging.info('EXCEPTION: %s',ex)
+				# Record exception information
+				
+				self.logger.info('%s', repr(sys.exc_info()))
 				print str(ex)
 
 			# If the self.indoor temperature is below the differential, and no error has occurred, the self.heater is turned on
@@ -141,16 +161,16 @@ class Controller:
 
 			# If log interval reached, record the timestamp, self.indoor and self.outdoor temperatures, and self.heater status to file
 			if self.cnt == self.log_interval: # Log to file every 5 min (60s * 5 = 300s)
-				logging.info('Recording temperature data to tent file %s', self.data_file)
+				self.logger.info('Recording temperature data to tent file %s', self.data_file)
 				self.output_file = codecs.open(self.data_file, 'w', 'utf-8')
 				self.output_file.write(repr(self.indoor) + "," + repr(self.outdoor))
 				self.output_file.close()
 
-				logging.info('Recording connection data to connection.csv')
+				self.logger.info('Recording connection data to connection.csv')
 				# Attempt to copy the logs to the server Pi and log the error code (0 success, nonzero failure)
 				self.error_logs = codecs.open('connection.csv', 'a', 'utf-8')
 				error_code = subprocess.call('scp -o ConnectTimeout=30 /home/pi/' + self.data_file + ' pi@' + self.server_ip + ':/home/pi/Desktop', shell=True)
-				logging.info('Error code received from SCP: %d', error_code)
+				self.logger.info('Error code received from SCP: %d', error_code)
 				self.error_logs.write(time.strftime("%Y/%m/%d %H:%M:%S", time.localtime()) + "," + str(error_code) + "\n")
 				self.error_logs.close()
 				self.cnt = 0
@@ -161,11 +181,13 @@ class Controller:
 				self.delay += 0.5
 
 			# Update the counter for the log interval timing
-			logging.info('Incrementing cnt (%d) by %d', self.cnt, self.check_interval)
+			self.logger.info('Incrementing cnt (%d) by %d', self.cnt, self.check_interval)
 			self.cnt += self.check_interval
 
 
 # Begin the program
 if __name__ == '__main__':
-	c = Controller()
+	# Each type of sensor (not number) is stored in this array
+	sensors = [MCP9808()]
+	c = Controller(sensors)
 	c.main()
