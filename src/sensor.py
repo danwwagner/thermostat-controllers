@@ -1,5 +1,6 @@
 from abc import ABCMeta, abstractmethod
 import subprocess
+#import Adafruit_MCP9808.MCP9808 as mcp9808
 
 # Include other subclasses for types of sensors to the end of the file
 # This position is denoted by another comment
@@ -26,8 +27,7 @@ class Sensor(object):
 
 # Subclass for MCP9808
 class MCP9808(Sensor):
-	#import Adafruit_MCP9808.MCP9808 as mcp9808
-	
+
 	# Initialize class variables
 	def __init__(self):
 		self.num_sensors = 0

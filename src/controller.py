@@ -8,9 +8,9 @@
 import logging
 import sys
 import time
-import subprocess
 #import RPi.GPIO as GPIO
 import codecs
+import subprocess
 
 class Controller:
 
@@ -86,9 +86,10 @@ class Controller:
 
 	# Main loop of the program.
 	def main(self):
-
 		# Configure the logger and record the types of sensors that have been detected by the controller
 		self.logger.basicConfig = logging.basicConfig(format=self.format, filename='controller.log',level=logging.INFO)
+		self.logger.info('SYSTEM ONLINE')
+
 		for sen in self.sensors:
 			self.logger.info('Detected %s sensors', type(sen))
 
@@ -131,8 +132,8 @@ class Controller:
 
 				self.logger.info('Retrieving outdoor temperature from control tent')
 				# Retrieve the self.outdoor temperature from the control tent and parse it
-				subprocess.call('scp pi@' + self.control_ip + ':/home/pi/self.outdoor .', shell=True)
-				self.logger.info('Retrieved temperature: %d', indoor)
+				subprocess.call('scp -o ConnectTimeout=10 pi@' + self.control_ip + ':/home/pi/outdoor .', shell=True)
+				self.logger.info('Retrieved temperature: %d', self.indoor)
 
 				# Open the retrieved file, read the line, convert to floating point, and round to three decimal places
 				self.outdoor = round(float(codecs.open('self.outdoor', 'r').read()), 3)
@@ -152,9 +153,13 @@ class Controller:
 			if self.indoor - self.outdoor < self.temperature_diff and (self.indoor != 90 and self.outdoor != 90):
 				#self.GPIO.output(self.signal_pin, GPIO.HIGH)
 				self.heater = "ON"
+
 			else: # self.indoors hotter or equivalent temperature to self.outdoors -- turn off self.heater.
 				#self.GPIO.output(self.signal_pin, GPIO.LOW)
-				if (self.indoor != 90 and self.outdoor != 90): self.heater = "OFF"
+				if (self.indoor != 90 and self.outdoor != 90): 
+					self.heater = "OFF"
+
+			self.logger.info('%d inside, %d outside -- heater is %s', self.indoor, self.outdoor, self.heater)
 
 			# If log interval reached, record the timestamp, self.indoor and self.outdoor temperatures, and self.heater status to file
 			if self.cnt == self.log_interval: # Log to file every 5 min (60s * 5 = 300s)
@@ -178,7 +183,7 @@ class Controller:
 				self.delay += 0.5
 
 			# Update the counter for the log interval timing
-			self.logger.info('Incrementing cnt (%d) by %d', self.cnt, self.check_interval)
+			self.logger.info('Incrementing cnt (%d) by check_interval (%d)', self.cnt, self.check_interval)
 			self.cnt += self.check_interval
 
 
