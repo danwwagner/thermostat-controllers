@@ -12,9 +12,6 @@ import subprocess
 #import RPi.GPIO as GPIO
 import codecs
 
-# Imports Sensor base class, all subclasses, and subprocess
-from sensor import *
-
 class Controller:
 
 	# Initialize the variables in the system.
