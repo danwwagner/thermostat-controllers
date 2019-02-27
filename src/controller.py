@@ -13,9 +13,13 @@ import codecs
 import subprocess
 
 class Controller:
-
-	# Initialize the variables in the system.
+"""
+Controller class that manages the Thermostat system
+"""
 	def __init__(self, sensor_list):
+		"""
+		Initializes the controller's variables and list of sensors.
+		"""
 
 		# Designate the type of sensor we are using.
 		self.sensors = sensor_list
@@ -86,7 +90,11 @@ class Controller:
 
 	# Main loop of the program.
 	def main(self):
-		# Configure the logger and record the types of sensors that have been detected by the controller
+
+		"""
+		Configure the logger and record the types of sensors that have been detected by the controller
+		"""
+
 		self.logger.basicConfig = logging.basicConfig(format=self.format, filename='controller.log',level=logging.INFO)
 		self.logger.info('SYSTEM ONLINE')
 
@@ -159,7 +167,7 @@ class Controller:
 				if (self.indoor != 90 and self.outdoor != 90): 
 					self.heater = "OFF"
 
-			self.logger.info('%d inside, %d outside -- heater is %s', self.indoor, self.outdoor, self.heater)
+			self.logger.info('%d inside, %d outside, heater %s', self.indoor, self.outdoor, self.heater)
 
 			# If log interval reached, record the timestamp, self.indoor and self.outdoor temperatures, and self.heater status to file
 			if self.cnt == self.log_interval: # Log to file every 5 min (60s * 5 = 300s)
