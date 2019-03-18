@@ -3,8 +3,8 @@
 # Sensor Reading Author: Adafruit Foundation
 # Source: https://bit.ly/1iFB8ZP (DS18B20)
 # Adapted and modified by: Dan Wagner
-# Functionality added: GUI, multiple sensor readings, relay pins
-# Agronomy Research, Summer 2018
+# Agronomy Research, 2018-2019
+
 import logging
 import sys
 import time
