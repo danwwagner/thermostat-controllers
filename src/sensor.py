@@ -14,6 +14,10 @@ class Sensor(object):
     __metaclass__ = ABCMeta
 
     @abstractmethod
+    def __repr__(self):
+        pass
+
+    @abstractmethod
     def __init__(self):
         pass
 
@@ -38,6 +42,9 @@ class MCP9808(Sensor):
     def __init__(self):
         self.num_sensors = 0
         self.addr_list = []
+
+    def __repr__(self):
+        return "MCP9808"
 
     def num_sensors(self):
         """

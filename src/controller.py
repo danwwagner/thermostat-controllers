@@ -104,7 +104,7 @@ class Controller:
         self.logger.info('SYSTEM ONLINE')
 
         for sen in self.sensors:
-            self.logger.info('Detected %s sensors', type(sen))
+            self.logger.info('Detected %s sensors', str(sen))
 
         while True:
             # Detect the sensors that are currently connected
