@@ -8,7 +8,7 @@
 import logging
 import sys
 import time
-# import RPi.GPIO as GPIO
+import RPi.GPIO as GPIO
 import codecs
 import subprocess
 
@@ -68,13 +68,13 @@ class Controller:
         self.signal_pin = 17
 
         # Use the Broadcom SOC channel number
-        # GPIO.setmode(GPIO.BCM)
+        GPIO.setmode(GPIO.BCM)
 
         # Set it as an output pin
-        # GPIO.setup(self.signal_pin, GPIO.OUT)
+        GPIO.setup(self.signal_pin, GPIO.OUT)
 
         # Pull it low for safety
-        # GPIO.output(self.signal_pin, GPIO.LOW)
+        GPIO.output(self.signal_pin, GPIO.LOW)
 
         # Delimit the next day's server connectivity via blank line
         self.error_logs = codecs.open('connection.csv', 'a', 'utf-8')
@@ -152,7 +152,9 @@ class Controller:
                                 ':/home/pi/outdoor .', shell=True)
 
                 # Open retrieved file, read the line, convert and round.
-                self.outdoor = float(codecs.open('outdoor', 'r').read())
+                temp_out = codecs.open('outdoor', 'r')
+                self.outdoor = float(temp_out.read())
+                temp_out.close()
                 self.outdoor = round(self.outdoor, 3)
                 self.logger.info('Retrieved temperature: %.2f', self.outdoor)
 
