@@ -67,7 +67,16 @@ class MCP9808(Sensor):
               "sed 's/^.0://g' | sed 's/UU//g'")
 
         # Poll the number of sensors via text manipulation from the I2C bus.
-        raw_sensors = subprocess.check_output(op, shell=True)
+        # raw_sensors = subprocess.check_output(op, shell=True)
+        process = subprocess.Popen(op, stdout=subprocess.PIPE, shell=True)
+        raw_sensors, errors = process.communicate()
+
+        # Close the process/file
+        # In this case, we ignore if it's already terminated/closed.
+        try:
+            process.terminate()
+        except OSError:
+            pass
 
         # Holds the list of I2C addresses for each sensor
         self.addr_list = []
