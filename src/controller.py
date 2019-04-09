@@ -127,7 +127,7 @@ class Controller:
                     self.indoor, readings = sen.read()
                     total_indoor += self.indoor
                     total_readings += readings
-                self.logger.info('Detected indoor temp of %d',
+                self.logger.info('Detected indoor temp of %.2f',
                                  total_indoor / len(self.sensors))
 
                 # Log the individual readings.
@@ -151,11 +151,10 @@ class Controller:
                                 self.control_ip +
                                 ':/home/pi/outdoor .', shell=True)
 
-                self.logger.info('Retrieved temperature: %d', self.indoor)
-
                 # Open retrieved file, read the line, convert and round.
-                self.outdoor = float(codecs.open('self.outdoor', 'r').read())
+                self.outdoor = float(codecs.open('outdoor', 'r').read())
                 self.outdoor = round(self.outdoor, 3)
+                self.logger.info('Retrieved temperature: %.2f', self.outdoor)
 
                 if self.indoor == 0 and self.outdoor == 0:
                     # both sensors disconnected while running

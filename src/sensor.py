@@ -42,6 +42,7 @@ class MCP9808(Sensor):
     def __init__(self):
         self.num_sensors = 0
         self.addr_list = []
+        self.sensor_list = []
 
     def __repr__(self):
         return "MCP9808"
@@ -105,6 +106,7 @@ class MCP9808(Sensor):
             temp = float(self.sensor_list[i].readTempC())
             sensor_readings += ("," + repr(temp))
             indoor += temp
+        indoor /= self.num_sensors
         return indoor, sensor_readings
 
 # Add other implementations of sensor types here
