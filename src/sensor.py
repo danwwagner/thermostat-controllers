@@ -105,23 +105,24 @@ class MCP9808(Sensor):
         if (len(temp_addr_list) != len(self.addr_list)):
             for address in self.addr_list:
                 del address
-            for sensor in self.addr_list:
+            for sensor in self.sensor_list:
                 try:
                     del sensor
                 except IndexError:
                     break
             del self.addr_list
-
             self.addr_list = list(temp_addr_list)
             self.changed_sensors = True
 
         self.num_sensors = len(self.addr_list)
         # Begin communication with each sensor
         # and add it to the list.
+        i = 0
         for addr in self.addr_list:
             if self.changed_sensors:
                 self.sensor_list.append(mcp9808.MCP9808((int(addr, 16))))
                 self.sensor_list[i].begin()
+                i += 1
 
         self.changed_sensors = False
 
