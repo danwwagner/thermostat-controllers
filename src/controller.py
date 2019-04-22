@@ -147,9 +147,17 @@ class Controller:
 
                 self.logger.info('Retrieving outdoor temp from control tent')
                 # Retrieve outdoor temp from the control tent and parse it
-                subprocess.call('scp -o ConnectTimeout=10 pi@' +
-                                self.control_ip +
-                                ':/home/pi/outdoor .', shell=True)
+                out_proc = subprocess.Popen('scp -o ConnectTimeout=5 pi@' +
+                                            self.control_ip +
+                                            ':/home/pi/outdoor .',
+                                            stdout=subprocess.PIPE,
+                                            shell=True)
+                out, err = out_proc.communicate()
+
+                try:
+                    out_proc.terminate()
+                except OSError:
+                    pass
 
                 # Open retrieved file, read the line, convert and round.
                 temp_out = codecs.open('outdoor', 'r')
@@ -218,10 +226,8 @@ class Controller:
                 self.error_logs.close()
                 self.cnt = 0
 
-            # Sleep the system and increment self.delay
-            while self.delay < self.check_interval:
-                time.sleep(0.5)
-                self.delay += 0.5
+            # Sleep system until the next check cycle.
+            time.sleep(self.check_interval)
 
             # Update the counter for the log interval timing
             self.logger.info('Incrementing cnt (%d) by check_interval (%d)',

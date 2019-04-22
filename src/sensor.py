@@ -43,6 +43,7 @@ class MCP9808(Sensor):
         self.num_sensors = 0
         self.addr_list = []
         self.sensor_list = []
+        self.changed_sensors = False
 
     def __repr__(self):
         return "MCP9808"
@@ -60,6 +61,10 @@ class MCP9808(Sensor):
         MCP9808 connected to the system.
         Initializes each sensor for reading data.
         """
+
+        # Clean up the data bus
+        # for i in range(0, self.num_sensors):
+        # del self.sensor_list[i]
 
         # Command to detect the I2C bus connetions
         op = ("sudo i2cdetect -y 1 "
@@ -79,29 +84,46 @@ class MCP9808(Sensor):
             pass
 
         # Holds the list of I2C addresses for each sensor
-        self.addr_list = []
+        # self.addr_list = []
 
         # Hexcode of an individual sensor
         sensor_name = ''
+        temp_addr_list = []
 
         # Create the sensor objects.
-        max = len(raw_sensors)
-        for i in range(0, max):
+        maxim = len(raw_sensors)
+        for i in range(0, maxim):
             if raw_sensors[i] != ' ' and raw_sensors[i] != '\n':
                 sensor_name += raw_sensors[i]
                 if len(sensor_name) == 2:
                     # Hexadecimal addresses are two digits long
-                    self.addr_list.append(sensor_name)
+                    temp_addr_list.append(sensor_name)
+                    # self.addr_list.append(sensor_name)
                     sensor_name = ''
 
-        self.num_sensors = len(self.addr_list)
+        # If a different number of sensors has been detected, update
+        if (len(temp_addr_list) != len(self.addr_list)):
+            for address in self.addr_list:
+                del address
+            for sensor in self.addr_list:
+                try:
+                    del sensor
+                except IndexError:
+                    break
+            del self.addr_list
 
+            self.addr_list = list(temp_addr_list)
+            self.changed_sensors = True
+
+        self.num_sensors = len(self.addr_list)
         # Begin communication with each sensor
         # and add it to the list.
-        for i in range(0, self.num_sensors):
-            sensor = mcp9808.MCP9808((int(self.addr_list[i], 16)))
-            sensor.begin()
-            self.sensor_list.append(sensor)
+        for addr in self.addr_list:
+            if self.changed_sensors:
+                self.sensor_list.append(mcp9808.MCP9808((int(addr, 16))))
+                self.sensor_list[i].begin()
+
+        self.changed_sensors = False
 
     def read(self):
         """
