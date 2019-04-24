@@ -39,11 +39,12 @@ class MCP9808(Sensor):
      Subtype of Sensor class that implements MCP9808 sensor functionality.
     """
 
-    def __init__(self):
+    def __init__(self, reserved_addr):
         self.num_sensors = 0
         self.addr_list = []
         self.sensor_list = []
         self.changed_sensors = False
+        self.reserved = list(reserved_addr)
 
     def __repr__(self):
         return "MCP9808"
@@ -58,13 +59,13 @@ class MCP9808(Sensor):
     def detect(self):
         """
         Detects and internally records the number of
-        MCP9808 connected to the system.
+        MCP9808 connected to the system via i2c.
         Initializes each sensor for reading data.
+        The code naively assumes that each i2c device
+        is a sensor object; thus, ensure that the class
+        list reserved has addresses that are used
+        by i2c devices other than the MCP9808s.
         """
-
-        # Clean up the data bus
-        # for i in range(0, self.num_sensors):
-        # del self.sensor_list[i]
 
         # Command to detect the I2C bus connetions
         op = ("sudo i2cdetect -y 1 "
@@ -83,9 +84,6 @@ class MCP9808(Sensor):
         except OSError:
             pass
 
-        # Holds the list of I2C addresses for each sensor
-        # self.addr_list = []
-
         # Hexcode of an individual sensor
         sensor_name = ''
         temp_addr_list = []
@@ -95,7 +93,7 @@ class MCP9808(Sensor):
         for i in range(0, maxim):
             if raw_sensors[i] != ' ' and raw_sensors[i] != '\n':
                 sensor_name += raw_sensors[i]
-                if len(sensor_name) == 2:
+                if len(sensor_name) == 2 and sensor_name not in self.reserved:
                     # Hexadecimal addresses are two digits long
                     temp_addr_list.append(sensor_name)
                     # self.addr_list.append(sensor_name)
