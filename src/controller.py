@@ -11,6 +11,7 @@ import time
 import RPi.GPIO as GPIO
 import codecs
 import subprocess
+import mh_z19
 
 
 class Controller:
@@ -132,6 +133,11 @@ class Controller:
 
                 # Log the individual readings.
                 self.sensor_readings.write(total_readings)
+
+                # Read CO2 sensor data and log to file
+                co2_val = mh_z19.read()['co2']
+                fmt_string = "," + str(co2_val) + "ppm"
+                self.sensor_readings.write(fmt_string)
 
                 # Write a new line for the next reading interval
                 self.sensor_readings.write('\n')

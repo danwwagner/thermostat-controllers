@@ -39,11 +39,26 @@ See examples of usage in the examples folder.
 
 Adafruit invests time and resources providing this open source code, please support Adafruit and open-source hardware by purchasing products from Adafruit!
 
+## MH_Z19 Python Module
+Python module for interfacing with the MH_Z19 CO2 sensor.
+
+Two versions can be installed: a full set, and only the sensor module.  For the full set, please see the repository link in the Acknowledgements.
+To install the sensor module, run the following command:
+
+````
+sudo pip install mh-z19
+````
+After installation, the main.py file in the thermostat controller must be run with sudo priviliges to access the serial bus correctly.
+
 ## Acknowledgements
 Thanks to Adafruit for their code for the DS18B20 and MCP9808 temperature sensors, and their installation guide above.
 
 https://learn.adafruit.com/adafruits-raspberry-pi-lesson-11-ds18b20-temperature-sensing/overview
 
 https://github.com/adafruit/Adafruit_Python_MCP9808 (courtesy of Tony DiCola, MIT license)
+
+Thanks to UedaTakeyuki for their MH-Z19 Python module that made integration into the current system seamless.
+
+https://github.com/UedaTakeyuki/mh-z19 (MIT license)
 
 Author: Dan Wagner. MIT license, all text above must be included in any redistribution.
