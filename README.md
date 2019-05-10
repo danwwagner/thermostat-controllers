@@ -48,7 +48,9 @@ To install the sensor module, run the following command:
 ````
 sudo pip install mh-z19
 ````
-After installation, the main.py file in the thermostat controller must be run with sudo priviliges to access the serial bus correctly.
+
+After installation, the main.py file in the thermostat controller must be run with sudo privileges to access the serial bus correctly.
+Installing with pip and excluding the sudo prefix may work for your system; however, if Python does not detect the library when running the script with sudo permissions then you must include the prefix.
 
 ## Acknowledgements
 Thanks to Adafruit for their code for the DS18B20 and MCP9808 temperature sensors, and their installation guide above.
