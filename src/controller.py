@@ -133,11 +133,16 @@ class Controller:
 
                 # Log the individual readings.
                 self.sensor_readings.write(total_readings)
+                self.logger.info('Reading CO2 data')
 
-                # Read CO2 sensor data and log to file
-                co2_val = mh_z19.read()['co2']
-                fmt_string = "," + str(co2_val) + "ppm"
-                self.sensor_readings.write(fmt_string)
+                try:
+                    # Read CO2 sensor data and log to file
+                    co2_val = mh_z19.read()['co2']
+                    fmt_string = "," + str(co2_val) + "ppm"
+                    self.logger.info('Logging %d ppm to file', co2_val)
+                    self.sensor_readings.write(fmt_string)
+                except TypeError:
+                    self.logger.info('Unable to read CO2 data')
 
                 # Write a new line for the next reading interval
                 self.sensor_readings.write('\n')

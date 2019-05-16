@@ -22,7 +22,7 @@ reserved = [""]
 sensor = [MCP9808(reserved)]
 
 # Initialize the controller program
-tent_control = Controller(sensor, reserved)
+tent_control = Controller(sensor)
 
 # Enter the main control loop
 tent_control.main()
