@@ -45,10 +45,14 @@ class Controller:
         self.check_interval = 60
 
         # IP address of main server Pi
-        self.server_ip = '192.168.4.1'
+        # self.server_ip = '192.168.4.1'
 
         # IP address of the control tent for outdoor temperature monitoring
         self.control_ip = '192.168.4.2'
+
+        # File location for outdoor temperature from server
+        # Includes the colon for scp (pi@ip:dir)
+        self.control_dir = ':/home/pi/thermostat-controllers/src/outdoor .'
 
         # List of sensors connected to the system
         self.sensor_list = []
@@ -68,14 +72,24 @@ class Controller:
         # Set up the relay signal pin
         self.signal_pin = 17
 
+        # Set up the stage one pin
+        self.stage_one_pin = 27
+
+        # Set up the stage two pin
+        self.stage_two_pin = 22
+
         # Use the Broadcom SOC channel number
         GPIO.setmode(GPIO.BCM)
 
         # Set it as an output pin
         GPIO.setup(self.signal_pin, GPIO.OUT)
+        GPIO.setup(self.stage_one_pin, GPIO.OUT)
+        GPIO.setup(self.stage_two_pin, GPIO.OUT)
 
         # Pull it low for safety
         GPIO.output(self.signal_pin, GPIO.LOW)
+        GPIO.output(self.stage_one_pin, GPIO.LOW)
+        GPIO.output(self.stage_two_pin, GPIO.LOW)
 
         # Delimit the next day's server connectivity via blank line
         self.error_logs = codecs.open('connection.csv', 'a', 'utf-8')
@@ -159,8 +173,7 @@ class Controller:
                 self.logger.info('Retrieving outdoor temp from control tent')
                 # Retrieve outdoor temp from the control tent and parse it
                 out_proc = subprocess.Popen('scp -o ConnectTimeout=5 pi@' +
-                                            self.control_ip +
-                                            ':/home/pi/outdoor .',
+                                            self.control_ip + self.control_dir,
                                             stdout=subprocess.PIPE,
                                             shell=True)
                 out, err = out_proc.communicate()
@@ -191,19 +204,33 @@ class Controller:
                 self.logger.info('%s', repr(sys.exc_info()))
                 print str(ex)
 
-            # If the indoor temperature is below the differential
-            # and no error has occurred, the heater is turned on
-            if (self.indoor - self.outdoor < self.temperature_diff and
-               self.indoor != 90 and
-               self.outdoor != 90):
-                # self.GPIO.output(self.signal_pin, GPIO.HIGH)
-                self.heater = "ON"
+        # If indoor temperature is below differential but
+        # is not large enough to enact stage two, heater is on first stage
+        if (self.indoor - self.outdoor < self.temperature_diff and
+           self.indoor - self.outdoor >= self.temperature_first and
+           self.indoor != 90 and self.outdoor != 90):
+            self.heater = "ST1"
+            GPIO.output(self.signal_pin, GPIO.HIGH)
+            GPIO.output(self.stage_one_pin, GPIO.HIGH)
+            GPIO.output(self.stage_two_pin, GPIO.LOW)
 
-            else:
+            # If the indoor temperature is below the differential
+            # and no error has occurred, the heater is on second stage
+        elif (self.indoor - self.outdoor < self.temperature_first and
+              self.indoor != 90 and self.outdoor != 90):
+                GPIO.output(self.signal_pin, GPIO.HIGH)
+                GPIO.output(self.stage_one_pin, GPIO.HIGH)
+                GPIO.output(self.stage_two_pin, GPIO.HIGH)
+                self.heater = "ST2"
+
+        else:
                 # Indoors >= outdoors -- turn off heater.
                 # self.GPIO.output(self.signal_pin, GPIO.LOW)
-                if (self.indoor != 90 and self.outdoor != 90):
-                    self.heater = "OFF"
+            if (self.indoor != 90 and self.outdoor != 90):
+                self.heater = "OFF"
+                GPIO.output(self.signal_pin, GPIO.LOW)
+                GPIO.output(self.stage_one_pin, GPIO.LOW)
+                GPIO.output(self.stage_two_pin, GPIO.LOW)
 
             self.logger.info('%d inside, %d outside, heater %s',
                              self.indoor, self.outdoor, self.heater)
@@ -219,22 +246,22 @@ class Controller:
                                        "," + repr(self.outdoor))
                 self.output_file.close()
 
-                self.logger.info('Recording connection data to connection.csv')
+                # self.logger.info('Recording scp info to connection.csv')
                 # Attempt to copy the logs to the server Pi
 
-                self.error_logs = codecs.open('connection.csv', 'a', 'utf-8')
-                err = subprocess.call('scp -o ConnectTimeout=30 /home/pi/' +
-                                      self.data_file + ' pi@' +
-                                      self.server_ip + ':/home/pi/Desktop',
-                                      shell=True)
+                # self.error_logs = codecs.open('connection.csv', 'a', 'utf-8')
+                # err = subprocess.call('scp -o ConnectTimeout=30 /home/pi/' +
+                #                      self.data_file + ' pi@' +
+                #                      self.server_ip + ':/home/pi/Desktop',
+                #                      shell=True)
 
-                self.logger.info('Error code received from SCP: %d', err)
+                # self.logger.info('Error code received from SCP: %d', err)
                 # Log the error code (0 success, nonzero failure)
-                self.error_logs.write(time.strftime("%Y/%m/%d %H:%M:%S",
-                                                    time.localtime()) +
-                                      "," + str(err) + "\n")
+                # self.error_logs.write(time.strftime("%Y/%m/%d %H:%M:%S",
+                #                                    time.localtime()) +
+                #                      "," + str(err) + "\n")
 
-                self.error_logs.close()
+                # self.error_logs.close()
                 self.cnt = 0
 
             # Sleep system until the next check cycle.
