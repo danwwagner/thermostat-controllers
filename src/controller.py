@@ -225,7 +225,7 @@ class Controller:
                                  self.data_file)
                 self.output_file = codecs.open(self.data_file, 'a', 'utf-8')
                 self.output_file.write(repr(self.indoor) +
-                                       "," + repr(self.outdoor))
+                                       "," + repr(self.outdoor) + '\n')
                 self.output_file.close()
                 self.cnt = 0
 
