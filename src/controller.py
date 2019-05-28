@@ -44,9 +44,6 @@ class Controller:
         # Temperature checking interval, in seconds
         self.check_interval = 60
 
-        # IP address of main server Pi
-        # self.server_ip = '192.168.4.1'
-
         # IP address of the control tent for outdoor temperature monitoring
         self.control_ip = '192.168.4.2'
 
@@ -90,11 +87,6 @@ class Controller:
         GPIO.output(self.signal_pin, GPIO.LOW)
         GPIO.output(self.stage_one_pin, GPIO.LOW)
         GPIO.output(self.stage_two_pin, GPIO.LOW)
-
-        # Delimit the next day's server connectivity via blank line
-        self.error_logs = codecs.open('connection.csv', 'a', 'utf-8')
-        self.error_logs.write('\n')
-        self.error_logs.close()
 
         # Delimit the next day's individual sensor readings via blank line
         self.sensor_readings = codecs.open('sensors.csv', 'a', 'utf-8')
@@ -204,64 +196,37 @@ class Controller:
                 self.logger.info('%s', repr(sys.exc_info()))
                 print str(ex)
 
-        # If indoor temperature is below differential but
-        # is not large enough to enact stage two, heater is on first stage
-        if (self.indoor - self.outdoor < self.temperature_diff and
-           self.indoor - self.outdoor >= self.temperature_first and
-           self.indoor != 90 and self.outdoor != 90):
-            self.heater = "ST1"
-            GPIO.output(self.signal_pin, GPIO.HIGH)
-            GPIO.output(self.stage_one_pin, GPIO.HIGH)
-            GPIO.output(self.stage_two_pin, GPIO.LOW)
-
-            # If the indoor temperature is below the differential
-            # and no error has occurred, the heater is on second stage
-        elif (self.indoor - self.outdoor < self.temperature_first and
-              self.indoor != 90 and self.outdoor != 90):
+            # If indoor temperature is below differential then
+            # engage Stage 2 since the purge period and Stage 1
+            # won't be enough to maintain our differential
+            if (self.indoor - self.outdoor < self.temperature_diff and
+               self.indoor != 90 and self.outdoor != 90):
+                self.heater = "ST2"
                 GPIO.output(self.signal_pin, GPIO.HIGH)
                 GPIO.output(self.stage_one_pin, GPIO.HIGH)
                 GPIO.output(self.stage_two_pin, GPIO.HIGH)
-                self.heater = "ST2"
 
-        else:
+            else:
                 # Indoors >= outdoors -- turn off heater.
-                # self.GPIO.output(self.signal_pin, GPIO.LOW)
-            if (self.indoor != 90 and self.outdoor != 90):
-                self.heater = "OFF"
-                GPIO.output(self.signal_pin, GPIO.LOW)
-                GPIO.output(self.stage_one_pin, GPIO.LOW)
-                GPIO.output(self.stage_two_pin, GPIO.LOW)
+                if (self.indoor != 90 and self.outdoor != 90):
+                    self.heater = "OFF"
+                    GPIO.output(self.signal_pin, GPIO.LOW)
+                    GPIO.output(self.stage_one_pin, GPIO.LOW)
+                    GPIO.output(self.stage_two_pin, GPIO.LOW)
 
-            self.logger.info('%d inside, %d outside, heater %s',
+            self.logger.info('%.2f inside, %.2f outside, heater %s',
                              self.indoor, self.outdoor, self.heater)
 
             # If log interval reached, record the timestamp,
             # indoor and outdoor temps, heater status to file
             if self.cnt == self.log_interval:
                 # Log to file every 5 min (60s * 5 = 300s)
-                self.logger.info('Recording temperature data to tent file %s',
+                self.logger.info('Recording temps data to tent file %s',
                                  self.data_file)
-                self.output_file = codecs.open(self.data_file, 'w', 'utf-8')
+                self.output_file = codecs.open(self.data_file, 'a', 'utf-8')
                 self.output_file.write(repr(self.indoor) +
                                        "," + repr(self.outdoor))
                 self.output_file.close()
-
-                # self.logger.info('Recording scp info to connection.csv')
-                # Attempt to copy the logs to the server Pi
-
-                # self.error_logs = codecs.open('connection.csv', 'a', 'utf-8')
-                # err = subprocess.call('scp -o ConnectTimeout=30 /home/pi/' +
-                #                      self.data_file + ' pi@' +
-                #                      self.server_ip + ':/home/pi/Desktop',
-                #                      shell=True)
-
-                # self.logger.info('Error code received from SCP: %d', err)
-                # Log the error code (0 success, nonzero failure)
-                # self.error_logs.write(time.strftime("%Y/%m/%d %H:%M:%S",
-                #                                    time.localtime()) +
-                #                      "," + str(err) + "\n")
-
-                # self.error_logs.close()
                 self.cnt = 0
 
             # Sleep system until the next check cycle.
