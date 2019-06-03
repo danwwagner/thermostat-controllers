@@ -14,7 +14,7 @@ from sensor import MCP9808
 # Make sure that each of the elements
 # in this list are hexadecimal strings
 # i.e. "0x1A".
-reserved = [""]
+reserved = ["0x68"]
 
 # You must include a Python implementation that
 # uses the Sensor superclass for the
