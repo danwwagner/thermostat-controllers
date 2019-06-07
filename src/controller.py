@@ -113,6 +113,9 @@ class Controller:
         for sen in self.sensors:
             self.logger.info('Detected %s sensors', str(sen))
 
+        # Calibrate current CO2 ppm to 410
+        mh_z19.zero_point_calibration()
+
         while True:
             # Detect the sensors that are currently connected
             for i in range(0, len(self.sensors)):
