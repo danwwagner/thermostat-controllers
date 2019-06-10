@@ -1,4 +1,4 @@
-from controller import Controller
+from heatcontroller import HeatController
 
 # (1) Change sensor type here
 from sensor import MCP9808
@@ -22,7 +22,9 @@ reserved = ["0x68"]
 sensor = [MCP9808(reserved)]
 
 # Initialize the controller program
-tent_control = Controller(sensor)
+tent_control = HeatController(sensor)
+
+#  tent_control = ControlController(sensor)
 
 # Enter the main control loop
 tent_control.main()

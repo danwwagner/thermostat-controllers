@@ -13,12 +13,10 @@ Version 1.0.0 supports two DS18B20 sensors attached.
 
 Version 2.0.0 supports multiple DS18B20 sensors and implements wireless communication via an access point.
 
-Version 3.0.0 [WIP] supports multiple MCP9808 sensors and expands on the wireless communication by transferring outdoor/ambient temperatures to the heat tents instead of having the heat tents measure the temperature outside of themselves. Verbose log files were added for debugging and system health information. The MH_Z19 carbon dioxide sensor interfacing was implemented via Python module see [this section](#mh_z19-python-module).
+Version 3.0.0 [WIP] supports multiple MCP9808 sensors and expands on the wireless communication by transferring outdoor/ambient temperatures to the heat tents instead of having the heat tents measure the temperature outside of themselves. Verbose log files were added for debugging and system health information.
 
 ## Repository Structure
-This repository is organized into two main folders: `src` and `log_scripts`. The main code that composes the thermostat controllers is located within `src` and is made up of three files: `main.py`, `sensor.py`, and `controller.py`. The system's starting point lies within `main.py`, which initializes user-defined sensors and the controller (provided in the `sensor.py` and `controller.py` files, respectively; any reserved I2C addresses must be specified here as the system assumes that all I2C devices (modulo an RTC module) are temperature sensors and will attempt to interface with them. Interfaces, interactions, and implementations of sensor communication must be defined first in `sensor.py` if they are to be communicated with; the file must define a method of detecting sensors currently connected, a string representation for identifying the sensor's model, a method of keeping track of the number of sensors, and a way to read the data being transmitted from the sensors. Within `controller.py` is the core of the system: it communicates via `sensor.py` implementations to monitor the temperature and depends on a wireless control tent setup to retrieve an ambient, outdoor temperature. This file will generate several files: a system health log (`control.log`), an aggregation of sensor readings (`sensors.csv`), and the retrieved outdoor ambient temperature (`outdoor`). The controller will monitor temperatures and initiate contact with relays; this version uses a Modine Mad-Dawg heater (PLACE URL HERE) with two stages; control algorithms for the user's specific heater will depend on manufacturer -- consult their documentation for assistance.
-
-The `log_scripts` directory contains several scripts (Python and Bash) that were used to retrieve the data from the tents and format, massage, and consolidate them. The files with prefix `collect` retrieve the individual heat tent sensor readings and system health logs; the numerical suffix corresponds to which heat tent it belongs to. The remaining Bash script, `make_csv.sh`, utilizes two Python scripts to massage the data and consolidate them into their respective CSV files. The first, `parse_logs.py`, performs the data massaging by collecting the appropriate information from `control.log` and `sensors.csv` for a single tent (given by command-line parameter). The second, `coalesce_logs.py`, consolidates the information in the files previously created by `parse_logs.py` and aggregates them into a multi-sheet Excel spreadsheet.
+This repository is organized into a single main folder: `src`. The main code that composes the thermostat controllers is located here and is made up of three files: `main.py`, `sensor.py`, and `controller.py`. The system's starting point lies within `main.py`, which initializes user-defined sensors and the controller (provided in the `sensor.py` and `controller.py` files, respectively; any reserved I2C addresses must be specified here as the system assumes that all I2C devices (modulo an RTC module) are temperature sensors and will attempt to interface with them. Interfaces, interactions, and implementations of sensor communication must be defined first in `sensor.py` if they are to be communicated with; the file must define a method of detecting sensors currently connected, a string representation for identifying the sensor's model, a method of keeping track of the number of sensors, and a way to read the data being transmitted from the sensors. Within `controller.py` is the core of the system: it communicates via `sensor.py` implementations to monitor the temperature and depends on a wireless control tent setup to retrieve an ambient, outdoor temperature. This file will generate several files: a system health log (`control.log`), an aggregation of sensor readings (`sensors.csv`), and the retrieved outdoor ambient temperature (`outdoor`). The controller will monitor temperatures and initiate contact with relays; this version uses a Modine Mad-Dawg heater with two stages; control algorithms for a specific heater will depend on manufacturer -- consult their documentation for assistance.
 
 ## Adafruit Python MCP9808
 **See the repository link in the Acknowledgements.  Any folders or files mentioned are isolated to that repository.**
@@ -46,28 +44,11 @@ See examples of usage in the examples folder.
 
 Adafruit invests time and resources providing this open source code, please support Adafruit and open-source hardware by purchasing products from Adafruit!
 
-## MH_Z19 Python Module
-Python module for interfacing with the MH_Z19 CO2 sensor. A separate implementation is not provided in `sensor.py` due to the simplicity of integration with this module.
-
-Two versions can be installed: a full set, and only the sensor module.  For the full set, please see the repository link in the Acknowledgements.
-To install the sensor module, run the following command:
-
-````
-sudo pip install mh-z19
-````
-
-After installation, the main.py file in the thermostat controller must be run with sudo privileges to access the serial bus correctly.
-Installing with pip and excluding the sudo prefix may work for your system; however, if Python does not detect the library when running the script with sudo permissions then you must include the prefix.
-
 ## Acknowledgements
 Thanks to Adafruit for their code for the DS18B20 and MCP9808 temperature sensors, and their installation guide above.
 
 https://learn.adafruit.com/adafruits-raspberry-pi-lesson-11-ds18b20-temperature-sensing/overview
 
 https://github.com/adafruit/Adafruit_Python_MCP9808 (courtesy of Tony DiCola, MIT license)
-
-Thanks to UedaTakeyuki for their MH-Z19 Python module that made integration into the current system seamless.
-
-https://github.com/UedaTakeyuki/mh-z19 (MIT license)
 
 Author: Dan Wagner. MIT license, all text above must be included in any redistribution.

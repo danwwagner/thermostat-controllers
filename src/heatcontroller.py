@@ -14,7 +14,7 @@ import subprocess
 import mh_z19
 
 
-class Controller:
+class HeatController:
     """
     Controller class that manages the Thermostat system
     """

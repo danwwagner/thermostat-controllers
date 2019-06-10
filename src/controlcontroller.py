@@ -8,13 +8,11 @@
 import logging
 import sys
 import time
-import RPi.GPIO as GPIO
 import codecs
-import subprocess
 import mh_z19
 
 
-class Controller:
+class ControlController:
     """
     Controller class that manages the Thermostat system
     """
