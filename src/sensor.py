@@ -96,7 +96,6 @@ class MCP9808(Sensor):
                 if len(sensor_name) == 2 and sensor_name not in self.reserved:
                     # Hexadecimal addresses are two digits long
                     temp_addr_list.append(sensor_name)
-                    # self.addr_list.append(sensor_name)
                     sensor_name = ''
 
         # If a different number of sensors has been detected, update

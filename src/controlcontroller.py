@@ -57,18 +57,6 @@ class ControlController:
         # Initialize counter for time elapsed before logging interval
         self.cnt = 0
 
-        # Set up the relay signal pin
-        # self.signal_pin = 17
-
-        # Use the Broadcom SOC channel number
-        # GPIO.setmode(GPIO.BCM)
-
-        # Set it as an output pin
-        # GPIO.setup(self.signal_pin, GPIO.OUT)
-
-        # Pull it low for safety
-        # GPIO.output(self.signal_pin, GPIO.LOW)
-
         # Delimit the next day's individual sensor readings via blank line
         self.sensor_readings = codecs.open('sensors.csv', 'a', 'utf-8')
         self.sensor_readings.write('\n')
@@ -91,17 +79,23 @@ class ControlController:
 
         self.logger.info('SYSTEM ONLINE')
 
+        # Log the types of sensors we have detected in the system
         for sen in self.sensors:
             self.logger.info('Detected %s sensors', str(sen))
 
+        # Calibrate current CO2 to 410 ppm
         mh_z19.zero_point_calibration()
 
         while True:
             try:
                 # Detect the sensors that are currently connected
                 for i in range(0, len(self.sensors)):
-                    self.sensors[i].detect()
-                    self.num_sensors[i] = self.sensors[i].num_sensors
+                    try:
+                        self.sensors[i].detect()
+                        self.num_sensors[i] = self.sensors[i].num_sensors
+                    except IOError:
+                        self.logger.info('Error detecting %s sensors',
+                                         str(self.sensors[i]))
 
                 # Open the sensor readings file and write current timestamp.
                 self.logger.info('Opening sensors file for records')
@@ -119,18 +113,17 @@ class ControlController:
                         self.indoor, readings = sen.read()
                         total_indoor += self.indoor
                         total_readings += readings
-                    except Exception:
-                        self.logger.info('Error reading sensors.')
-                        self.sensor_readings.close()
-                        error_flag = 1
+                    except IOError:
+                        self.logger.info('Error reading a sensor.')
+                        error_flag += 1
                 self.logger.info('Detected indoor temp of %.2f',
                                  total_indoor / len(self.sensors))
 
-                if not error_flag:
-                    # Log the individual readings.
+                # Log the individual readings if we have any sensor data
+                if error_flag != len(self.sensors):
                     self.sensor_readings.write(total_readings)
-                    self.logger.info('Reading CO2 data')
 
+                self.logger.info('Reading CO2 data')
                 try:
                     # Read CO2 sensor data and log to file
                     co2_val = mh_z19.read()['co2']
@@ -153,11 +146,11 @@ class ControlController:
                 self.indoor = round(self.indoor, 3)
 
                 if self.indoor == 0 and self.outdoor == 0:
-                    # both sensors disconnected while running
+                    # sensors disconnected while running
                     raise RuntimeError
 
-            except Exception as ex:
-                # Exception occurred with sensor: notify via GUI
+            except RuntimeError as ex:
+                # Exception occurred with sensors
                 self.indoor = 90
                 self.outdoor = 90
                 self.heater = "SENSOR"

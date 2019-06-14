@@ -110,18 +110,22 @@ class HeatController:
 
         self.logger.info('SYSTEM ONLINE')
 
+        # Log the types of sensros we have detected in the system
         for sen in self.sensors:
             self.logger.info('Detected %s sensors', str(sen))
 
-        # Calibrate current CO2 ppm to 410
+        # Calibrate current CO2 to 410ppm
         mh_z19.zero_point_calibration()
 
         while True:
             # Detect the sensors that are currently connected
             for i in range(0, len(self.sensors)):
-                self.sensors[i].detect()
-                self.num_sensors[i] = self.sensors[i].num_sensors
-
+                try:
+                    self.sensors[i].detect()
+                    self.num_sensors[i] = self.sensors[i].num_sensors
+                except IOError:
+                    self.logger.info('Error detecting %s sensors',
+                                     str(self.sensors[i]))
             try:
                 # Open the sensor readings file and write current timestamp.
                 self.logger.info('Opening sensors file for records')
@@ -140,17 +144,16 @@ class HeatController:
                         total_indoor += self.indoor
                         total_readings += readings
                     except IOError:
-                        self.logger.info('Error reading sensors.')
-                        self.sensor_readings.close()
-                        error_flag = 1
+                        self.logger.info('Error reading a sensor.')
+                        error_flag += 1
                 self.logger.info('Detected indoor temp of %.2f',
                                  total_indoor / len(self.sensors))
 
-                if not error_flag:
-                    # Log the individual readings.
+                # Log the individual readings if we have any sensor data
+                if error_flag != len(self.sensors):
                     self.sensor_readings.write(total_readings)
-                    self.logger.info('Reading CO2 data')
 
+                self.logger.info('Reading CO2 data')
                 try:
                     # Read CO2 sensor data and log to file
                     co2_val = mh_z19.read()['co2']
@@ -196,7 +199,7 @@ class HeatController:
                     # both sensors disconnected while running
                     raise RuntimeError
 
-            except Exception as ex:
+            except RuntimeError as ex:
                 # Exception occurred with sensor: notify via GUI
                 self.indoor = 90
                 self.outdoor = 90
