@@ -97,12 +97,12 @@ class ControlController:
         mh_z19.zero_point_calibration()
 
         while True:
-            # Detect the sensors that are currently connected
-            for i in range(0, len(self.sensors)):
-                self.sensors[i].detect()
-                self.num_sensors[i] = self.sensors[i].num_sensors
-
             try:
+                # Detect the sensors that are currently connected
+                for i in range(0, len(self.sensors)):
+                    self.sensors[i].detect()
+                    self.num_sensors[i] = self.sensors[i].num_sensors
+
                 # Open the sensor readings file and write current timestamp.
                 self.logger.info('Opening sensors file for records')
                 self.sensor_readings = codecs.open('sensors.csv', 'a', 'utf-8')
@@ -113,16 +113,23 @@ class ControlController:
                 self.logger.info('Reading sensors from Pi')
                 total_indoor = 0
                 total_readings = ""
+                error_flag = 0
                 for sen in self.sensors:
-                    self.indoor, readings = sen.read()
-                    total_indoor += self.indoor
-                    total_readings += readings
+                    try:
+                        self.indoor, readings = sen.read()
+                        total_indoor += self.indoor
+                        total_readings += readings
+                    except Exception:
+                        self.logger.info('Error reading sensors.')
+                        self.sensor_readings.close()
+                        error_flag = 1
                 self.logger.info('Detected indoor temp of %.2f',
                                  total_indoor / len(self.sensors))
 
-                # Log the individual readings.
-                self.sensor_readings.write(total_readings)
-                self.logger.info('Reading CO2 data')
+                if not error_flag:
+                    # Log the individual readings.
+                    self.sensor_readings.write(total_readings)
+                    self.logger.info('Reading CO2 data')
 
                 try:
                     # Read CO2 sensor data and log to file
@@ -159,8 +166,8 @@ class ControlController:
                 self.logger.info('%s', repr(sys.exc_info()))
                 print str(ex)
 
-	    # Immediately record outdoor temperature to file for control
-            self.logger.info('Control: %d outside',self.indoor)
+            # Immediately record outdoor temperature to file for control
+            self.logger.info('Control: %d outside', self.indoor)
 
             self.logger.info('Recording temperature data to tent file %s',
                              self.data_file)
@@ -169,6 +176,6 @@ class ControlController:
                 self.output_file.write(repr(self.indoor))
                 self.output_file.close()
             else:
-                self.logger.info('Cannot read sensors. Not logging to tent file.')
+                self.logger.info('Cannot read sensors. No temperature data.')
 
             time.sleep(self.check_interval)

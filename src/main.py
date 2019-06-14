@@ -13,8 +13,8 @@ from sensor import MCP9808
 # other than temperature sensors.
 # Make sure that each of the elements
 # in this list are hexadecimal strings
-# i.e. "0x1A".
-reserved = ["0x68"]
+# i.e. "1a".
+reserved = ["68"]
 
 # You must include a Python implementation that
 # uses the Sensor superclass for the

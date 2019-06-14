@@ -133,16 +133,23 @@ class HeatController:
                 self.logger.info('Reading sensors from Pi')
                 total_indoor = 0
                 total_readings = ""
+                error_flag = 0
                 for sen in self.sensors:
-                    self.indoor, readings = sen.read()
-                    total_indoor += self.indoor
-                    total_readings += readings
+                    try:
+                        self.indoor, readings = sen.read()
+                        total_indoor += self.indoor
+                        total_readings += readings
+                    except IOError:
+                        self.logger.info('Error reading sensors.')
+                        self.sensor_readings.close()
+                        error_flag = 1
                 self.logger.info('Detected indoor temp of %.2f',
                                  total_indoor / len(self.sensors))
 
-                # Log the individual readings.
-                self.sensor_readings.write(total_readings)
-                self.logger.info('Reading CO2 data')
+                if not error_flag:
+                    # Log the individual readings.
+                    self.sensor_readings.write(total_readings)
+                    self.logger.info('Reading CO2 data')
 
                 try:
                     # Read CO2 sensor data and log to file
