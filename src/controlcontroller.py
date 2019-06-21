@@ -9,6 +9,7 @@ import logging
 import sys
 import time
 import codecs
+import subprocess
 import mh_z19
 
 
@@ -65,6 +66,18 @@ class ControlController:
         # Instantiate the logging for debugging purposes
         self.logger = logging.getLogger("Controller")
 
+        # Rcord the number of recent I/O errors
+        self.io_errors = ''
+
+        # Record number of reboots the system has experienced
+        self.reboots = ''
+
+        # Maximum number of allowable reboots
+        self.reboot_max = 5
+
+        # Maximum number of allowable I2C errors before reboot
+        self.error_max = 3
+
     # Main loop of the program.
     def main(self):
 
@@ -87,16 +100,16 @@ class ControlController:
         mh_z19.zero_point_calibration()
 
         while True:
-            try:
-                # Detect the sensors that are currently connected
-                for i in range(0, len(self.sensors)):
-                    try:
-                        self.sensors[i].detect()
-                        self.num_sensors[i] = self.sensors[i].num_sensors
-                    except IOError:
-                        self.logger.info('Error detecting %s sensors',
-                                         str(self.sensors[i]))
+            # Detect the sensors that are currently connected
+            for i in range(0, len(self.sensors)):
+                try:
+                    self.sensors[i].detect()
+                    self.num_sensors[i] = self.sensors[i].num_sensors
+                except IOError:
+                    self.logger.info('Error detecting %s sensors',
+                                     str(self.sensors[i]))
 
+            try:
                 # Open the sensor readings file and write current timestamp.
                 self.logger.info('Opening sensors file for records')
                 self.sensor_readings = codecs.open('sensors.csv', 'a', 'utf-8')
@@ -108,16 +121,77 @@ class ControlController:
                 total_indoor = 0
                 total_readings = ""
                 error_flag = 0
+                io_flag = 0
                 for sen in self.sensors:
                     try:
                         self.indoor, readings = sen.read()
                         total_indoor += self.indoor
                         total_readings += readings
-                    except IOError:
+                    except (IOError, ZeroDivisionError):
                         self.logger.info('Error reading a sensor.')
                         error_flag += 1
-                self.logger.info('Detected indoor temp of %.2f',
-                                 total_indoor / len(self.sensors))
+                        io_flag = 1
+                        # Read in error and reboot values for updates
+                        self.io_errors = codecs.open('io_error', 'r', 'utf-8')
+                        num_errors = int(self.io_errors.read())
+                        self.io_errors.close()
+                        self.reboots = codecs.open('reboots', 'r', 'utf-8')
+                        num_reboots = int(self.reboots.read())
+                        self.reboots.close()
+                        # If maximum reboots not reached, then reboot
+                        if (num_errors >= self.error_max and
+                           num_reboots < self.reboot_max):
+                            self.logger.info('Maximum I/O errors (%d);' +
+                                             ' rebooting.', num_errors)
+                            self.io_errors = codecs.open('io_error',
+                                                         'w')
+                            num_reboots += 1
+                            self.io_errors.write('0')
+                            self.io_errors.close()
+                            self.reboots = codecs.open('reboots', 'w')
+                            self.reboots.write((str(num_reboots)))
+                            self.reboots.close()
+                            self.sensor_readings.close()
+                            proc = subprocess.Popen('reboot',
+                                                    stdout=subprocess.PIPE,
+                                                    shell=True)
+                            out, err = proc.communicate()
+
+                        # If maximum reboots reached, stay on
+                        elif num_reboots == self.reboot_max:
+                            num_errors += 1
+                            self.logger.info('Max reboots (%d) reached;' +
+                                             ' I/O error #%d occurred',
+                                             num_reboots, num_errors)
+                            self.io_errors = codecs.open('io_error',
+                                                         'w')
+                            self.io_errors.write((str(num_errors)))
+                            self.io_errors.close()
+
+                        # If maximums not reached, record the error
+                        elif (num_reboots < self.reboot_max and
+                              num_errors < self.error_max):
+                            num_errors += 1
+                            self.logger.info('I/O Error #%d occurred',
+                                             num_errors)
+                            self.io_errors = codecs.open('io_error'
+                                                         'w')
+                            self.io_errors.write((str(num_errors)))
+                            self.io_errors.close()
+
+                # No I/O error detected this time -> reset counters
+                if not io_flag:
+                    self.logger.info('No I/O error detected; ' +
+                                     'resetting number of errors and reboots')
+                    self.io_errors = codecs.open('io_error', 'w')
+                    self.io_errors.write('0')
+                    self.io_errors.close()
+                    self.reboots = codecs.open('reboots', 'w')
+                    self.reboots.write('0')
+                    self.reboots.close()
+
+                    self.logger.info('Detected indoor temp of %.2f',
+                                     total_indoor / len(self.sensors))
 
                 # Log the individual readings if we have any sensor data
                 if error_flag != len(self.sensors):
@@ -157,7 +231,7 @@ class ControlController:
 
                 # Record exception information
                 self.logger.info('%s', repr(sys.exc_info()))
-                print str(ex)
+                print((str(ex)))
 
             # Immediately record outdoor temperature to file for control
             self.logger.info('Control: %d outside', self.indoor)
