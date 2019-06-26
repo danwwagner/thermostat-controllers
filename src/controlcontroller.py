@@ -219,14 +219,13 @@ class ControlController:
                 # Round to three decimal places
                 self.indoor = round(self.indoor, 3)
 
-                if self.indoor == 0 and self.outdoor == 0:
+                if self.indoor == 0:
                     # sensors disconnected while running
                     raise RuntimeError
 
             except RuntimeError as ex:
                 # Exception occurred with sensors
                 self.indoor = 90
-                self.outdoor = 90
                 self.heater = "SENSOR"
 
                 # Record exception information
