@@ -6,7 +6,7 @@ Thermostat Controllers for Agronomy heat stress research
 [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.1323816.svg)](https://doi.org/10.5281/zenodo.1323816) Version 2.0.0
 
 
-This software constitutes a thermostat controller by reading attached temperature sensors and controlling a set of relays.  The system reads both the indoor and outdoor temperatures and measures their differential.  If the indoor temperature is not higher than the outdoor temperature by a defined amount, then a subset of the relays are activated to enable a heater to heat up the environment; the number of relays that come online are dependent upon the stage of the heater used.  Otherwise, the relays are deactivated and no heat is applied.
+This software constitutes a thermostat controller by reading attached temperature sensors and controlling a set of relays.  The system reads both the indoor and outdoor temperatures and measures their differential.  If the indoor temperature is not higher than the outdoor temperature by a defined amount, then a subset of the relays are activated to enable a heater to heat up the environment; the number of relays that come online are dependent upon the stage of the heater used.  Otherwise, the relays are deactivated and no heat is applied. If three consecutive remote I/O errors occur, then the system reboots and attempts to read again; this occurs until five reboots have happened, after which the system remains online for the remainder of the cycle. The number of errors and reboots can be changed within `controlcontroller.py` and `heatcontroller.py`.
 
 ## Versions
 Version 1.0.0 supports two DS18B20 sensors attached.
