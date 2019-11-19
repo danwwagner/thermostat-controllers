@@ -116,9 +116,8 @@ class HeatController:
         sensors that have been detected by the controller.
         """
 
-        self.logger.basicConfig = logging.basicConfig(format=self.format,
-                                                      filename='control.log',
-                                                      level=logging.INFO)
+        self.logger.basicConfig(format=self.format, filename='control.log',
+                            level=logging.INFO)
 
         self.logger.info('SYSTEM ONLINE')
 
