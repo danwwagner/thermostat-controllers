@@ -45,7 +45,7 @@ class HeatController:
         self.check_interval = 60
 
         # IP address of the control tent for outdoor temperature monitoring
-        self.control_ip = '192.168.4.2'
+        self.control_ip = '192.168.6.1'
 
         # File location for outdoor temperature from server
         # Includes the colon for scp (pi@ip:dir)
@@ -116,7 +116,7 @@ class HeatController:
         sensors that have been detected by the controller.
         """
 
-        self.logger.basicConfig(format=self.format, filename='control.log',
+        self.logger.basicConfig = logging.basicConfig(format=self.format, filename='control.log',
                             level=logging.INFO)
 
         self.logger.info('SYSTEM ONLINE')
@@ -204,7 +204,7 @@ class HeatController:
                             num_errors += 1
                             self.logger.info('I/O Error #%d occurred',
                                              num_errors)
-                            self.io_errors = codecs.open('io_error'
+                            self.io_errors = codecs.open('io_error',
                                                          'w')
                             self.io_errors.write((str(num_errors)))
                             self.io_errors.close()
@@ -251,7 +251,7 @@ class HeatController:
 
                 self.logger.info('Retrieving outdoor temp from control tent')
                 # Retrieve outdoor temp from the control tent and parse it
-                out_proc = subprocess.Popen('scp -o ConnectTimeout=5 pi@' +
+                out_proc = subprocess.Popen('sudo scp -o ConnectTimeout=10 pi@' +
                                             self.control_ip + self.control_dir,
                                             stdout=subprocess.PIPE,
                                             shell=True)
@@ -263,11 +263,16 @@ class HeatController:
                     pass
 
                 # Open retrieved file, read the line, convert and round.
-                temp_out = codecs.open('outdoor', 'r')
-                self.outdoor = float(temp_out.read())
-                temp_out.close()
-                self.outdoor = round(self.outdoor, 3)
-                self.logger.info('Retrieved temperature: %.2f', self.outdoor)
+                outdoor_temps = codecs.open('outdoor', 'r')
+                out_vals = outdoor_temps.read().split(',')
+                outdoor_temps.close()
+
+                # Convert the line to a list of floating point values
+                out_list = list(map(float, out_vals))
+                # Compute the average of the outdoor temperature for comparison
+                outdoor = sum(out_list) / len(out_list)
+                self.outdoor = round(outdoor, 3)
+                self.logger.info('Average retrieved temperature: %.2f', self.outdoor)
 
                 if self.indoor == 0 and self.outdoor == 0:
                     # both sensors disconnected while running

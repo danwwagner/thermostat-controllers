@@ -86,7 +86,7 @@ class ControlController:
         sensors that have been detected by the controller.
         """
         
-        self.logger.basicConfig(format=self.format, filename='control.log',
+        self.logger.basicConfig = logging.basicConfig(format=self.format, filename='control.log',
                             level=logging.INFO)
 
         self.logger.info('SYSTEM ONLINE')
@@ -238,7 +238,7 @@ class ControlController:
                              self.data_file)
             if self.indoor != 90:
                 self.output_file = codecs.open(self.data_file, 'w', 'utf-8')
-                self.output_file.write(repr(self.indoor))
+                self.output_file.write(total_readings[1:])  # remove first comma
                 self.output_file.close()
             else:
                 self.logger.info('Cannot read sensors. No temperature data.')
