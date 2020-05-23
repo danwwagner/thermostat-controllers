@@ -10,6 +10,7 @@ import sys
 import time
 import codecs
 import subprocess
+import string
 import mh_z19
 
 
@@ -236,9 +237,12 @@ class ControlController:
 
             self.logger.info('Recording temperature data to tent file %s',
                              self.data_file)
+
+            # Remove non-printable characters (NUL, etc)
+            outdoor_record = "".join(temp for temp in total_readings[1:] if temp in string.printable)
             if self.indoor != 90:
                 self.output_file = codecs.open(self.data_file, 'w', 'utf-8')
-                self.output_file.write(total_readings[1:])  # remove first comma
+                self.output_file.write(outdoor_record)  # remove first comma
                 self.output_file.close()
             else:
                 self.logger.info('Cannot read sensors. No temperature data.')
