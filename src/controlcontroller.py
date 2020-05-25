@@ -35,12 +35,6 @@ class ControlController:
         # Format for logging information
         self.format = "%(asctime)-15s %(message)s"
 
-        # Temperature differential for tent
-        self.temperature_diff = 4
-
-        # Log file interval, in seconds
-        self.log_interval = 300
-
         # Temperature checking interval, in seconds
         self.check_interval = 60
 
@@ -50,14 +44,8 @@ class ControlController:
         # Initialize the self.indoor temperature
         self.indoor = 0
 
-        # Initialize the self.delay time period
-        self.delay = 0
-
         # Initialize self.heater status to OFF
         self.heater = "OFF"
-
-        # Initialize counter for time elapsed before logging interval
-        self.cnt = 0
 
         # Delimit the next day's individual sensor readings via blank line
         self.sensor_readings = codecs.open('sensors.csv', 'a', 'utf-8')
@@ -238,11 +226,11 @@ class ControlController:
             self.logger.info('Recording temperature data to tent file %s',
                              self.data_file)
 
-            # Remove non-printable characters (NUL, etc)
+            # Remove non-printable characters (NUL, etc) and first comma
             outdoor_record = "".join(temp for temp in total_readings[1:] if temp in string.printable)
             if self.indoor != 90:
                 self.output_file = codecs.open(self.data_file, 'w', 'utf-8')
-                self.output_file.write(outdoor_record)  # remove first comma
+                self.output_file.write(outdoor_record) 
                 self.output_file.close()
             else:
                 self.logger.info('Cannot read sensors. No temperature data.')

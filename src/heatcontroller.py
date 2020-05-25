@@ -29,9 +29,6 @@ class HeatController:
         # Keep track of the number of each type of sensors connected.
         self.num_sensors = [None] * len(self.sensors)
 
-        # Filename for specific tent to write data
-        self.data_file = '01.txt'
-
         # Format for logging information
         self.format = "%(asctime)-15s %(message)s"
 
@@ -57,14 +54,8 @@ class HeatController:
         # Initialize the self.indoor temperature
         self.indoor = 0
 
-        # Initialize the self.delay time period
-        self.delay = 0
-
         # Initialize self.heater status to OFF
         self.heater = "OFF"
-
-        # Initialize counter for time elapsed before logging interval
-        self.cnt = 0
 
         # Set up the relay signal pin
         self.signal_pin = 17
@@ -121,7 +112,7 @@ class HeatController:
 
         self.logger.info('SYSTEM ONLINE')
 
-        # Log the types of sensros we have detected in the system
+        # Log the types of sensors we have detected in the system
         for sen in self.sensors:
             self.logger.info('Detected %s sensors', str(sen))
 
@@ -309,22 +300,5 @@ class HeatController:
             self.logger.info('%.2f inside, %.2f outside, heater %s',
                              self.indoor, self.outdoor, self.heater)
 
-            # If log interval reached, record the timestamp,
-            # indoor and outdoor temps, heater status to file
-            if self.cnt == self.log_interval:
-                # Log to file every 5 min (60s * 5 = 300s)
-                self.logger.info('Recording temps data to tent file %s',
-                                 self.data_file)
-                self.output_file = codecs.open(self.data_file, 'a', 'utf-8')
-                self.output_file.write(repr(self.indoor) +
-                                       "," + repr(self.outdoor) + '\n')
-                self.output_file.close()
-                self.cnt = 0
-
             # Sleep system until the next check cycle.
             time.sleep(self.check_interval)
-
-            # Update the counter for the log interval timing
-            self.logger.info('Incrementing cnt (%d) by check_interval (%d)',
-                             self.cnt, self.check_interval)
-            self.cnt += self.check_interval
