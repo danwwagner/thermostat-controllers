@@ -175,7 +175,7 @@ class ControlController:
                             self.logger.info('I/O Error #%d occurred',
                                              num_errors)
                             self.io_errors = codecs.open('io_error'
-                                                         'w')
+                                                         ,'w')
                             self.io_errors.write((str(num_errors)))
                             self.io_errors.close()
 
