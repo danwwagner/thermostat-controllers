@@ -11,6 +11,7 @@ import time
 import RPi.GPIO as GPIO
 import codecs
 import subprocess
+import string
 import mh_z19
 
 
@@ -255,8 +256,11 @@ class HeatController:
 
                 # Open retrieved file, read the line, convert and round.
                 outdoor_temps = codecs.open('outdoor', 'r')
-                out_vals = outdoor_temps.read().split(',')
+                temps = outdoor_temps.read().split(',')
                 outdoor_temps.close()
+
+                # Remove any NULL characters received from the control tent
+                out_vals = "".join(t for t in temps if t in string.printable)
 
                 # Convert the line to a list of floating point values
                 out_list = list(map(float, out_vals))
