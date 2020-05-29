@@ -258,14 +258,22 @@ class HeatController:
                 outdoor_temps = codecs.open('outdoor', 'r')
                 temps = outdoor_temps.read().split(',')
                 outdoor_temps.close()
-
+                out_vals = []
+                
                 # Remove any NULL characters received from the control tent
-                out_vals = "".join(t for t in temps if t in string.printable)
+                for t in temps:
+                    try:
+                        out_vals.append(float(t))
+                    except:
+                        pass
 
                 # Convert the line to a list of floating point values
                 out_list = list(map(float, out_vals))
                 # Compute the average of the outdoor temperature for comparison
-                outdoor = sum(out_list) / len(out_list)
+                if len(out_list) > 0:
+                    outdoor = sum(out_list) / len(out_list)
+                else:
+                    outdoor = 0
                 self.outdoor = round(outdoor, 3)
                 self.logger.info('Average retrieved temperature: %.2f', self.outdoor)
 
