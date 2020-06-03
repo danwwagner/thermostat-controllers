@@ -144,7 +144,7 @@ class MCP9808(Sensor):
                 temp = float(self.sensor_list[i].readTempC())
             except:
                 bad_sensors += 1
-                continue
+                continue # don't add to sensor_readings or indoor
             sensor_readings += ("," + repr(temp))
             indoor += temp
         indoor /= (self.sensor_cnt - bad_sensors)
