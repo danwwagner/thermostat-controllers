@@ -275,7 +275,6 @@ class HeatController:
                             joined = "".join(v for v in valid_parts)
                             out_vals.append(float(joined))
                         
-
                 # Convert the line to a list of floating point values
                 out_list = list(map(float, out_vals))
                 # Compute the average of the outdoor temperature for comparison

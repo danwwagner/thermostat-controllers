@@ -118,7 +118,12 @@ class MCP9808(Sensor):
         for addr in self.addr_list:
             if self.changed_sensors:
                 self.sensor_list.append(mcp9808.MCP9808((int(addr, 16))))
-                self.sensor_list[i].begin()
+                try:
+                    self.sensor_list[i].begin()
+                except:
+                    self.sensor_list.remove(self.sensor_list[i])
+                    self.sensor_cnt -= 1
+                    continue  # don't increment i
                 i += 1
 
         self.changed_sensors = False
@@ -127,15 +132,22 @@ class MCP9808(Sensor):
         """
         Read sensor data and return the averaged value and each individual
         reading in CSV format for logging purposes.
+        If a sensor goes offline between detection and read,
+        then it is skipped.
         """
 
         indoor = 0
         sensor_readings = ""
+        bad_sensors = 0
         for i in range(0, self.sensor_cnt):
-            temp = float(self.sensor_list[i].readTempC())
+            try:
+                temp = float(self.sensor_list[i].readTempC())
+            except:
+                bad_sensors += 1
+                continue
             sensor_readings += ("," + repr(temp))
             indoor += temp
-        indoor /= self.sensor_cnt
+        indoor /= (self.sensor_cnt - bad_sensors)
         return indoor, sensor_readings
 
 # Add other implementations of sensor types here
