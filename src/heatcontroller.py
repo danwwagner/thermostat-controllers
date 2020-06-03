@@ -36,9 +36,6 @@ class HeatController:
         # Temperature differential for tent
         self.temperature_diff = 4
 
-        # Log file interval, in seconds
-        self.log_interval = 300
-
         # Temperature checking interval, in seconds
         self.check_interval = 60
 
@@ -112,6 +109,9 @@ class HeatController:
                             level=logging.INFO)
 
         self.logger.info('SYSTEM ONLINE')
+        
+        # Initialize the logging string for future use
+        logging_str = 'Average retrieved temperature: ' + repr(0.00)
 
         # Log the types of sensors we have detected in the system
         for sen in self.sensors:
@@ -259,23 +259,37 @@ class HeatController:
                 temps = outdoor_temps.read().split(',')
                 outdoor_temps.close()
                 out_vals = []
-                
+
+                # Initialize the logging string for future use
                 # Remove any NULL characters received from the control tent
+                # If any occur, remove them and still record that temperature
                 for t in temps:
                     try:
                         out_vals.append(float(t))
                     except:
-                        pass
+                        valid_parts = []
+                        for char in t:
+                            if char in string.printable:
+                                valid_parts.append(char)
+                        if len(valid_parts) > 0:
+                            joined = "".join(v for v in valid_parts)
+                            out_vals.append(float(joined))
+                        
 
                 # Convert the line to a list of floating point values
                 out_list = list(map(float, out_vals))
                 # Compute the average of the outdoor temperature for comparison
+                # If an error occurred in parsing the outdoor, use the previous reading
                 if len(out_list) > 0:
                     outdoor = sum(out_list) / len(out_list)
                 else:
-                    outdoor = 0
+                    start_point = logging_str.find(':') + 1
+                    prev_outdoor = float(logging_str[start_point:])
+                    outdoor = prev_outdoor
+
                 self.outdoor = round(outdoor, 3)
-                self.logger.info('Average retrieved temperature: %.2f', self.outdoor)
+                logging_str = 'Average retrieved temperature: ' + repr(self.outdoor)
+                self.logger.info(logging_str)
 
                 if self.indoor == 0 and self.outdoor == 0:
                     # both sensors disconnected while running
