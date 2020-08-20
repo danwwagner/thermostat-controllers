@@ -40,7 +40,7 @@ class MCP9808(Sensor):
     """
 
     def __init__(self, reserved_addr):
-        self.num_sensors = 0
+        self.sensor_cnt = 0
         self.addr_list = []
         self.sensor_list = []
         self.changed_sensors = False
@@ -54,7 +54,7 @@ class MCP9808(Sensor):
         Retrieve the number of sensors detected
         """
 
-        return self.num_sensors
+        return self.sensor_cnt
 
     def detect(self):
         """
@@ -75,7 +75,7 @@ class MCP9808(Sensor):
         # Poll the number of sensors via text manipulation from the I2C bus.
         # raw_sensors = subprocess.check_output(op, shell=True)
         process = subprocess.Popen(op, stdout=subprocess.PIPE, shell=True)
-        raw_sensors, errors = process.communicate()
+        raw_sensors, _ = process.communicate()
 
         # Close the process/file
         # In this case, we ignore if it's already terminated/closed.
@@ -111,14 +111,19 @@ class MCP9808(Sensor):
             self.addr_list = list(temp_addr_list)
             self.changed_sensors = True
 
-        self.num_sensors = len(self.addr_list)
+        self.sensor_cnt = len(self.addr_list)
         # Begin communication with each sensor
         # and add it to the list.
         i = 0
         for addr in self.addr_list:
             if self.changed_sensors:
                 self.sensor_list.append(mcp9808.MCP9808((int(addr, 16))))
-                self.sensor_list[i].begin()
+                try:
+                    self.sensor_list[i].begin()
+                except:
+                    self.sensor_list.remove(self.sensor_list[i])
+                    self.sensor_cnt -= 1
+                    continue  # don't increment i
                 i += 1
 
         self.changed_sensors = False
@@ -127,15 +132,22 @@ class MCP9808(Sensor):
         """
         Read sensor data and return the averaged value and each individual
         reading in CSV format for logging purposes.
+        If a sensor goes offline between detection and read,
+        then it is skipped.
         """
 
         indoor = 0
         sensor_readings = ""
-        for i in range(0, self.num_sensors):
-            temp = float(self.sensor_list[i].readTempC())
+        bad_sensors = 0
+        for i in range(0, self.sensor_cnt):
+            try:
+                temp = float(self.sensor_list[i].readTempC())
+            except:
+                bad_sensors += 1
+                continue # don't add to sensor_readings or indoor
             sensor_readings += ("," + repr(temp))
             indoor += temp
-        indoor /= self.num_sensors
+        indoor /= (self.sensor_cnt - bad_sensors)
         return indoor, sensor_readings
 
 # Add other implementations of sensor types here

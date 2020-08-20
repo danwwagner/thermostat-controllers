@@ -11,6 +11,7 @@ import time
 import RPi.GPIO as GPIO
 import codecs
 import subprocess
+import string
 import mh_z19
 
 
@@ -29,23 +30,17 @@ class HeatController:
         # Keep track of the number of each type of sensors connected.
         self.num_sensors = [None] * len(self.sensors)
 
-        # Filename for specific tent to write data
-        self.data_file = '01.txt'
-
         # Format for logging information
         self.format = "%(asctime)-15s %(message)s"
 
         # Temperature differential for tent
         self.temperature_diff = 4
 
-        # Log file interval, in seconds
-        self.log_interval = 300
-
         # Temperature checking interval, in seconds
         self.check_interval = 60
 
         # IP address of the control tent for outdoor temperature monitoring
-        self.control_ip = '192.168.4.2'
+        self.control_ip = '192.168.6.1'
 
         # File location for outdoor temperature from server
         # Includes the colon for scp (pi@ip:dir)
@@ -57,14 +52,8 @@ class HeatController:
         # Initialize the self.indoor temperature
         self.indoor = 0
 
-        # Initialize the self.delay time period
-        self.delay = 0
-
         # Initialize self.heater status to OFF
         self.heater = "OFF"
-
-        # Initialize counter for time elapsed before logging interval
-        self.cnt = 0
 
         # Set up the relay signal pin
         self.signal_pin = 17
@@ -116,13 +105,15 @@ class HeatController:
         sensors that have been detected by the controller.
         """
 
-        self.logger.basicConfig = logging.basicConfig(format=self.format,
-                                                      filename='control.log',
-                                                      level=logging.INFO)
+        self.logger.basicConfig = logging.basicConfig(format=self.format, filename='control.log',
+                            level=logging.INFO)
 
         self.logger.info('SYSTEM ONLINE')
+        
+        # Initialize the logging string for future use
+        logging_str = 'Average retrieved temperature: ' + repr(0.00)
 
-        # Log the types of sensros we have detected in the system
+        # Log the types of sensors we have detected in the system
         for sen in self.sensors:
             self.logger.info('Detected %s sensors', str(sen))
 
@@ -205,7 +196,7 @@ class HeatController:
                             num_errors += 1
                             self.logger.info('I/O Error #%d occurred',
                                              num_errors)
-                            self.io_errors = codecs.open('io_error'
+                            self.io_errors = codecs.open('io_error',
                                                          'w')
                             self.io_errors.write((str(num_errors)))
                             self.io_errors.close()
@@ -252,7 +243,7 @@ class HeatController:
 
                 self.logger.info('Retrieving outdoor temp from control tent')
                 # Retrieve outdoor temp from the control tent and parse it
-                out_proc = subprocess.Popen('scp -o ConnectTimeout=5 pi@' +
+                out_proc = subprocess.Popen('sudo scp -o ConnectTimeout=10 pi@' +
                                             self.control_ip + self.control_dir,
                                             stdout=subprocess.PIPE,
                                             shell=True)
@@ -264,11 +255,40 @@ class HeatController:
                     pass
 
                 # Open retrieved file, read the line, convert and round.
-                temp_out = codecs.open('outdoor', 'r')
-                self.outdoor = float(temp_out.read())
-                temp_out.close()
-                self.outdoor = round(self.outdoor, 3)
-                self.logger.info('Retrieved temperature: %.2f', self.outdoor)
+                outdoor_temps = codecs.open('outdoor', 'r')
+                temps = outdoor_temps.read().split(',')
+                outdoor_temps.close()
+                out_vals = []
+
+                # Initialize the logging string for future use
+                # Remove any NULL characters received from the control tent
+                # If any occur, remove them and still record that temperature
+                for t in temps:
+                    try:
+                        out_vals.append(float(t))
+                    except:
+                        valid_parts = []
+                        for char in t:
+                            if char in string.printable:
+                                valid_parts.append(char)
+                        if len(valid_parts) > 0:
+                            joined = "".join(v for v in valid_parts)
+                            out_vals.append(float(joined))
+                        
+                # Convert the line to a list of floating point values
+                out_list = list(map(float, out_vals))
+                # Compute the average of the outdoor temperature for comparison
+                # If an error occurred in parsing the outdoor, use the previous reading
+                if len(out_list) > 0:
+                    outdoor = sum(out_list) / len(out_list)
+                else:
+                    start_point = logging_str.find(':') + 1
+                    prev_outdoor = float(logging_str[start_point:])
+                    outdoor = prev_outdoor
+
+                self.outdoor = round(outdoor, 3)
+                logging_str = 'Average retrieved temperature: ' + repr(self.outdoor)
+                self.logger.info(logging_str)
 
                 if self.indoor == 0 and self.outdoor == 0:
                     # both sensors disconnected while running
@@ -305,22 +325,5 @@ class HeatController:
             self.logger.info('%.2f inside, %.2f outside, heater %s',
                              self.indoor, self.outdoor, self.heater)
 
-            # If log interval reached, record the timestamp,
-            # indoor and outdoor temps, heater status to file
-            if self.cnt == self.log_interval:
-                # Log to file every 5 min (60s * 5 = 300s)
-                self.logger.info('Recording temps data to tent file %s',
-                                 self.data_file)
-                self.output_file = codecs.open(self.data_file, 'a', 'utf-8')
-                self.output_file.write(repr(self.indoor) +
-                                       "," + repr(self.outdoor) + '\n')
-                self.output_file.close()
-                self.cnt = 0
-
             # Sleep system until the next check cycle.
             time.sleep(self.check_interval)
-
-            # Update the counter for the log interval timing
-            self.logger.info('Incrementing cnt (%d) by check_interval (%d)',
-                             self.cnt, self.check_interval)
-            self.cnt += self.check_interval
