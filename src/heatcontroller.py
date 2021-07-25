@@ -9,11 +9,9 @@ import logging
 import sys
 import time
 import RPi.GPIO as GPIO
-import codecs
 import subprocess
 import string
-import mh_z19
-
+from sensor import MCP9808
 
 class HeatController:
     """
@@ -40,11 +38,11 @@ class HeatController:
         self.check_interval = 60
 
         # IP address of the control tent for outdoor temperature monitoring
-        self.control_ip = '192.168.6.1'
+        self.control_ip = '192.168.4.1'
 
         # File location for outdoor temperature from server
         # Includes the colon for scp (pi@ip:dir)
-        self.control_dir = ':/home/pi/thermostat-controllers/src/outdoor .'
+        self.control_dir = ':/home/pi/ .'
 
         # List of sensors connected to the system
         self.sensor_list = []
@@ -78,7 +76,7 @@ class HeatController:
         GPIO.output(self.stage_two_pin, GPIO.LOW)
 
         # Delimit the next day's individual sensor readings via blank line
-        self.sensor_readings = codecs.open('sensors.csv', 'a', 'utf-8')
+        self.sensor_readings = open('sensors.csv', mode='a', encoding='utf-8')
         self.sensor_readings.write('\n')
         self.sensor_readings.close()
 
@@ -117,10 +115,10 @@ class HeatController:
         for sen in self.sensors:
             self.logger.info('Detected %s sensors', str(sen))
 
-        # Calibrate current CO2 to 410ppm
-        mh_z19.zero_point_calibration()
 
         while True:
+            del self.sensors
+            self.sensors = [MCP9808(["68"])]
             # Detect the sensors that are currently connected
             for i in range(0, len(self.sensors)):
                 try:
@@ -133,7 +131,7 @@ class HeatController:
             try:
                 # Open the sensor readings file and write current timestamp.
                 self.logger.info('Opening sensors file for records')
-                self.sensor_readings = codecs.open('sensors.csv', 'a', 'utf-8')
+                self.sensor_readings = open('sensors.csv', mode='a', encoding='utf-8')
                 self.sensor_readings.write(time.strftime("%Y/%m/%d %H:%M:%S",
                                                          time.localtime()))
 
@@ -153,10 +151,10 @@ class HeatController:
                         error_flag += 1
                         io_flag = 1
                         # Read in error and reboot values for updates
-                        self.io_errors = codecs.open('io_error', 'r', 'utf-8')
+                        self.io_errors = open('io_error', mode='r', encoding='utf-8')
                         num_errors = int(self.io_errors.read())
                         self.io_errors.close()
-                        self.reboots = codecs.open('reboots', 'r', 'utf-8')
+                        self.reboots = open('reboots', mode='r', encoding='utf-8')
                         num_reboots = int(self.reboots.read())
                         self.reboots.close()
                         # If maximum reboots not reached, then reboot
@@ -164,12 +162,12 @@ class HeatController:
                            num_reboots < self.reboot_max):
                             self.logger.info('Maximum I/O errors (%d);' +
                                              ' rebooting.', num_errors)
-                            self.io_errors = codecs.open('io_error',
-                                                         'w')
+                            self.io_errors = open('io_error',
+                                                         mode='w')
                             num_reboots += 1
                             self.io_errors.write('0')
                             self.io_errors.close()
-                            self.reboots = codecs.open('reboots', 'w')
+                            self.reboots = open('reboots', mode='w')
                             self.reboots.write((str(num_reboots)))
                             self.reboots.close()
                             self.sensor_readings.close()
@@ -185,8 +183,8 @@ class HeatController:
                             self.logger.info('Max reboots (%d) reached;' +
                                              ' I/O error #%d occurred',
                                              num_reboots, num_errors)
-                            self.io_errors = codecs.open('io_error',
-                                                         'w')
+                            self.io_errors = open('io_error',
+                                                         mode='w')
                             self.io_errors.write((str(num_errors)))
                             self.io_errors.close()
 
@@ -196,8 +194,8 @@ class HeatController:
                             num_errors += 1
                             self.logger.info('I/O Error #%d occurred',
                                              num_errors)
-                            self.io_errors = codecs.open('io_error',
-                                                         'w')
+                            self.io_errors = open('io_error',
+                                                         mode='w')
                             self.io_errors.write((str(num_errors)))
                             self.io_errors.close()
 
@@ -205,10 +203,10 @@ class HeatController:
                 if not io_flag:
                     self.logger.info('No I/O error detected; ' +
                                      'resetting number of errors and reboots')
-                    self.io_errors = codecs.open('io_error', 'w')
+                    self.io_errors = open('io_error', mode='w')
                     self.io_errors.write('0')
                     self.io_errors.close()
-                    self.reboots = codecs.open('reboots', 'w')
+                    self.reboots = open('reboots', mode='w')
                     self.reboots.write('0')
                     self.reboots.close()
 
@@ -219,16 +217,7 @@ class HeatController:
                 if error_flag != len(self.sensors):
                     self.sensor_readings.write(total_readings)
 
-                self.logger.info('Reading CO2 data')
-                try:
-                    # Read CO2 sensor data and log to file
-                    co2_val = mh_z19.read()['co2']
-                    fmt_string = "," + str(co2_val) + "ppm"
-                    self.logger.info('Logging %d ppm to file', co2_val)
-                    self.sensor_readings.write(fmt_string)
-                except TypeError:
-                    self.logger.info('Unable to read CO2 data')
-
+            
                 # Write a new line for the next reading interval
                 self.sensor_readings.write('\n')
 
@@ -255,7 +244,7 @@ class HeatController:
                     pass
 
                 # Open retrieved file, read the line, convert and round.
-                outdoor_temps = codecs.open('outdoor', 'r')
+                outdoor_temps = open('outdoor', mode='r')
                 temps = outdoor_temps.read().split(',')
                 outdoor_temps.close()
                 out_vals = []
